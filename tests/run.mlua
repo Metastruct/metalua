@@ -1,0 +1,56 @@
+-------------------------------------------------------------------------------
+-- Copyright (c) 2006-2013 Fabien Fleutot and others.
+--
+-- All rights reserved.
+--
+-- This program and the accompanying materials are made available
+-- under the terms of the Eclipse Public License v1.0 which
+-- accompanies this distribution, and is available at
+-- http://www.eclipse.org/legal/epl-v10.html
+--
+-- This program and the accompanying materials are also made available
+-- under the terms of the MIT public license which accompanies this
+-- distribution, and is available at http://www.lua.org/license.html
+--
+-- Contributors:
+--     Fabien Fleutot - API and implementation
+--
+-------------------------------------------------------------------------------
+
+-- Run all *.lua and *.mlua files in this directory.
+-- This makes it easy to run all tests in the directory, 
+
+-{ extension 'xloop' }
+
+LS_COMMANDS = { "ls", "dir /b" } 
+for i, cmd in ipairs(LS_COMMANDS) do
+   local f = io.popen (cmd)
+   ls = f :read '*a'
+   f :close()
+   if ls ~= '' then
+      break
+   elseif i == #LS_COMMANDS then
+      error "Can't figure out how to list files on your OS"
+   end
+end
+
+this_script = arg[1]
+
+local errors = {}
+
+for filename in ls :gmatch "[^\n]+" if filename ~= this_script and filename :strmatch  "%.m?lua$" do
+   printf ("*** running %s ***", filename)
+   local ret = os.execute ("metalua "..filename)
+   if ret ~= 0 then 
+      errors[#errors + 1] = "Test "..filename.." failed, returned "..ret
+   end
+end
+
+if #errors > 0 then
+   print("\n\n================================================================================") 
+   error(
+      "TEST FAILURES DETECTED:\n" ..
+      "-----------------------\n" ..
+      " * " .. table.concat(errors, "\n * ")
+    ) 
+end

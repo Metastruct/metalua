@@ -1,0 +1,45 @@
+-------------------------------------------------------------------------------
+-- Copyright (c) 2006-2013 Fabien Fleutot and others.
+--
+-- All rights reserved.
+--
+-- This program and the accompanying materials are made available
+-- under the terms of the Eclipse Public License v1.0 which
+-- accompanies this distribution, and is available at
+-- http://www.eclipse.org/legal/epl-v10.html
+--
+-- This program and the accompanying materials are also made available
+-- under the terms of the MIT public license which accompanies this
+-- distribution, and is available at http://www.lua.org/license.html
+--
+-- Contributors:
+--     Fabien Fleutot - API and implementation
+--
+-------------------------------------------------------------------------------
+
+-{ extension 'match' }
+
+require 'metalua.walk.id'
+
+ast = +{ block:
+         y = type(1)
+         function foo(x)
+            local type = 'number'
+            assert(x==type or not x)
+         end
+         foo(x) }
+
+disp = |msg,ast| printf("\n%s:\n%s", msg, table.tostring(ast, 80, 'nohash'))
+disp('initial term', ast)
+
+do -- Make globals explicit:
+   local ast = table.deep_copy(ast)
+   local cfg = { id = { } }
+   function cfg.id.free(i) 
+      i <- `Index{ `Id '_G', `String{i[1]} } 
+      return 'break'
+   end   
+   walk_id.block(cfg, ast)
+   disp('Globals made explicit', ast)
+end
+

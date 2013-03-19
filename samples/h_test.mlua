@@ -1,0 +1,79 @@
+-------------------------------------------------------------------------------
+-- Copyright (c) 2006-2013 Fabien Fleutot and others.
+--
+-- All rights reserved.
+--
+-- This program and the accompanying materials are made available
+-- under the terms of the Eclipse Public License v1.0 which
+-- accompanies this distribution, and is available at
+-- http://www.eclipse.org/legal/epl-v10.html
+--
+-- This program and the accompanying materials are also made available
+-- under the terms of the MIT public license which accompanies this
+-- distribution, and is available at http://www.lua.org/license.html
+--
+-- Contributors:
+--     Fabien Fleutot - API and implementation
+--
+-------------------------------------------------------------------------------
+
+-{ extension 'log' }
+-{ extension  'H'  }
+
+require 'metalua.compiler'
+
+TEST_CASES = { 
+
+   {  "everything should be renamed",
+      +{ block: 
+         local x = 3
+         print(x) },
+      { } }, 
+
+  {  "don't get confused between global and local x",
+     +{ block: 
+        print(x)
+        local x = 3
+        print(x) },
+     { alpha = { } } },
+
+  {  "don't rename keepme",
+     +{ block:
+        keepme()
+        dont_keep_me() },
+     { keep = 'keepme' , alpha = `Local{ { }, { } } } },
+ 
+  {  "print shouldn't be renamed the 2nd and 3rd time",
+     +{ block:
+        print(i)
+        -{!`Call{`Id 'print', `String 'hi' } } 
+        -{!+{print 'hi'}} },
+     { } },
+ 
+  {  "print shouldn't be renamed at all",
+     +{ block: 
+        print(i)
+        -{`Call{`Id 'print', `String 'hi' } }
+        -{+{print 'hi'}} },
+     { keep = 'print' } },
+ 
+  {  "Rename print with a pre-specified name, rename x freely, not y",
+     +{ block: 
+        print (x, y) },
+     {  alpha = +{stat: local RENAMED_PRINT = print}, 
+        keep  = {y = true} } } } 
+
+for case in ivalues(TEST_CASES) do
+   local comment, ast, cfg = unpack(case)
+   print ('\n'..'-':rep(70))
+   print (comment)
+   local H = H:new(cfg)
+   print ("\nBEFORE PARSING:")
+   $log (ast, H, 50)
+   H(ast)
+   print ("\nAFTER PARSING:")
+   $log (ast, H, 50)
+end
+
+print ('\n'..'=':rep(70))
+$log(TEST_CASES,40)
