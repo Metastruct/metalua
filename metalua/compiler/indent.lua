@@ -13,7 +13,7 @@
 -- distribution, and is available at http://www.lua.org/license.html
 --
 -- Contributors:
---     Fabien Fleutot - API and implementation
+--     Sierra Wireless - API and implementation
 --
 --------------------------------------------------------------------------------
 

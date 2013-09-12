@@ -57,10 +57,10 @@ local tebar_content = gg.list{
     separators  = { ",", ";" },
     terminators = ")" }
 
-M.tebar = gg.multisequence{ 
+M.tebar = gg.multisequence{
     name = 'annot.tebar',
     --{ '*', builder = 'TDynbar' }, -- maybe not user-available
-    { '(', tebar_content, ')', 
+    { '(', tebar_content, ')',
       builder = function(x) return x[1] end },
     { te }
 }

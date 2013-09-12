@@ -18,24 +18,6 @@
 --
 -------------------------------------------------------------------------------
 
-----------------------------------------------------------------------
---
--- WARNING! You're entering a hackish area, proceed at your own risks!
---
--- This code results from the borrowing, then ruthless abuse, of
--- Yueliang's implementation of Lua 5.0 compiler. I claim
--- responsibility for all of the ugly, dirty stuff that you might spot
--- in it.
---
--- Eventually, this code will be rewritten, either in Lua or more
--- probably in C. Meanwhile, if you're interested into digging
--- metalua's sources, this is not the best part to invest your time
--- on.
---
--- End of warning.
---
-----------------------------------------------------------------------
-
 --[[--------------------------------------------------------------------
 
   $Id$
