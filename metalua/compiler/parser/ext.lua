@@ -110,7 +110,7 @@ local function op_assign(kw, op)
       return { tag="Op", op, a, b }
    end
    local function f(a,b)
-       if #a ~= #b then return gg.parse_error "assymetric operator+assignment" end
+       if #a ~= #b then gg.parse_error "assymetric operator+assignment" end
        local right = { }
        local r = { tag="Set", a, right }
        for i=1, #a do right[i] = { tag="Op", op, a[i], b[i] } end

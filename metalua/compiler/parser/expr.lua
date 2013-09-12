@@ -112,7 +112,7 @@ function M.id_or_literal (lx)
       else
          msg = "Unexpected expr token " .. table.tostring (a, 'nohash')
       end
-      return gg.parse_error (lx, msg)
+      gg.parse_error (lx, msg)
    end
    return a
 end
@@ -120,29 +120,29 @@ end
 
 --------------------------------------------------------------------------------
 -- Builder generator for operators. Wouldn't be worth it if "|x|" notation
--- were allowed, but then lua 5.1 wouldn't compile it 
+-- were allowed, but then lua 5.1 wouldn't compile it
 --------------------------------------------------------------------------------
 
 -- opf1 = |op| |_,a| `Op{ op, a }
-local function opf1 (op) return 
+local function opf1 (op) return
    function (_,a) return { tag="Op", op, a } end end
 
 -- opf2 = |op| |a,_,b| `Op{ op, a, b }
-local function opf2 (op) return 
+local function opf2 (op) return
    function (a,_,b) return { tag="Op", op, a, b } end end
 
 -- opf2r = |op| |a,_,b| `Op{ op, b, a } -- (args reversed)
-local function opf2r (op) return 
+local function opf2r (op) return
    function (a,_,b) return { tag="Op", op, b, a } end end
 
 local function op_ne(a, _, b)
     -- This version allows to remove the "ne" operator from the AST definition.
     -- However, it doesn't always produce the exact same bytecode as Lua 5.1.
-    return { tag="Op", "not", 
+    return { tag="Op", "not",
              { tag="Op", "eq", a, b, lineinfo= {
                    first = a.lineinfo.first, last = b.lineinfo.last } } }
 end
-   
+
 
 --------------------------------------------------------------------------------
 --
@@ -202,7 +202,7 @@ M.expr = gg.expr { name = "expression",
          return {tag="Invoke", obj, mlp_misc.id2string(m_name), unpack(args)} end},
       { "+{", mlp_meta.quote_content, "}", builder = function (f, arg)
          return {tag="Call", f,  arg[1] } end },
-      default = { name="opt_string_arg", parse = mlp_misc.opt_string, builder = function(f, arg) 
+      default = { name="opt_string_arg", parse = mlp_misc.opt_string, builder = function(f, arg)
          return {tag="Call", f, arg } end } } }
 
 return M

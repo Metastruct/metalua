@@ -25,6 +25,8 @@ PROMPT2    = ">> "
 
 local M = { }
 
+mlc = require 'metalua.compiler'.new()
+
 local readline
 
 do -- set readline() to a line reader, either editline otr a default
@@ -61,38 +63,30 @@ function M.run()
          table.insert(lines, line)
          src = table.concat (lines, "\n")
       until #line>0
-
       lx  = mlc :src_to_lexstream(src)
       success, ast = pcall(mlc.lexstream_to_ast, mlc, lx)
       if success then
-         local check_status, check_msg = pcall(check_ast, ast)
-         if not check_status then
-             print "Invalid AST:"
-             print (check_msg)
-             lines = { }
-         else
-             success, f = pcall(mlc.ast_to_function, mlc, ast, '=stdin')
-             if success then
-                 results = { xpcall(f, debug.traceback) }
-                 success = table.remove (results, 1)
-                 if success then
-                     -- Success!
-                     table.iforeach(|x| table.print(x, LINE_WIDTH), results)
-                     lines = { }
-                 else
-                     print "Evaluation error:"
-                     print (results[1])
-                     lines = { }
-                 end
-             else
-                 print "Can't compile into bytecode:"
-                 print (f)
-                 lines = { }
-             end
-         end
+          success, f = pcall(mlc.ast_to_function, mlc, ast, '=stdin')
+          if success then
+              results = { xpcall(f, debug.traceback) }
+              success = table.remove (results, 1)
+              if success then
+                  -- Success!
+                  table.iforeach(|x| table.print(x, LINE_WIDTH), results)
+                  lines = { }
+              else
+                  print "Evaluation error:"
+                  print (results[1])
+                  lines = { }
+              end
+          else
+              print "Can't compile into bytecode:"
+              print (f)
+              lines = { }
+          end
       else
-         -- If lx has been read entirely, try to read another
-         -- line before failing.
+         -- If lx has been read entirely, try to read
+         --  another line before failing.
          if not reached_eof(lx, ast) then
             print "Can't compile source into AST:"
             print (ast)

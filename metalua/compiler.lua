@@ -17,9 +17,9 @@
 --
 --------------------------------------------------------------------------------
 
---*-lua-*-----------------------------------------------------------------------
+--------------------------------------------------------------------------------
 --
--- Convert between various code representation formats. Some atomic
+-- Convert between various code representation formats. Atomic
 -- converters are written in extenso, others are composed automatically
 -- by chaining the atomic ones together in a closure.
 --
@@ -29,10 +29,10 @@
 -- * luastring:  these sources as a single string.
 -- * lexstream:  a stream of lexemes.
 -- * ast:        an abstract syntax tree.
--- * proto:      a (Yueliang) struture containing a high level 
---               representation of bytecode. Largely based on the 
+-- * proto:      a (Yueliang) struture containing a high level
+--               representation of bytecode. Largely based on the
 --               Proto structure in Lua's VM
--- * luacstring: a string dump of the function, as taken by 
+-- * luacstring: a string dump of the function, as taken by
 --               loadstring() and produced by string.dump().
 -- * function:   an executable lua function in RAM.
 --
@@ -63,90 +63,6 @@ local arg_types = {
 
 M.order = table.transpose(M.sequence)
 
-local function check_ast(kind, ast)
-	if not ast then return check_ast('block', kind) end
-	assert(type(ast)=='table', "wrong AST type")
-	local cfg = {}
-	local function error2ast(error_node, ...)
-		if not error_node.earlier then
-			if error_node.tag=='Error' then
-				cfg.errorfound = true
-				cfg.errormsg = error_node[1]
-
-				-- Try to extract error position in source
-				local li = error_node.lineinfo and error_node.lineinfo.first
-
-				-- Fill positions if undefined or not narrow enough
-				if li and ( not cfg.positions or cfg.positions.offset < li.offset ) then
-					cfg.positions = {
-						column = li.column,
-						line   = li.line,
-						offset = li.offset
-					}
-				end
-			else
-				-- This block is for dealing with errors which are not error
-				-- nodes. It would be soooo nice to get rid of it.
-				-- TODO: Try to remove this bug when issue #20 is fixed
-				local li
-				for _, n in ipairs{ error_node, ... } do
-					if n.lineinfo then
-						li = n.lineinfo
-						cfg.errorfound = true
-						break
-					end
-				end
-				local posmsg
-				if li then
-					local column = li.first.column
-					local line   = li.first.line
-					local offset = li.first.offset
-					posmsg = string.format("line %d, char %d, offset %d",
-					line, column, offset)
-					cfg.positions = {
-						column = column,
-						line   = line,
-						offset = offset
-					}
-				else
-					posmsg = "unknown source position"     
-				end
-				local msg = "Invalid node "..
-				(error_node.tag and "tag "..tostring(error_node.tag) or "without tag")..
-				(posmsg and " at "..posmsg or "")
-				cfg.errormsg = msg
-			end
-		end
-	end
-	local f = require 'metalua.treequery.walk' [kind]
-	cfg.malformed=error2ast
-	cfg.unknown=  error2ast
-	cfg.error=    error2ast
-	f(cfg, ast)
-	return cfg.errorfound == nil, cfg.errormsg, cfg.positions
-end
-
-M.check_ast = check_ast
-
-local function find_error(ast, nested)
-	checks('table', '?table')
-	nested = nested or { }
-	if nested[ast] then return "Cyclic AST" end
-	nested[ast]=true
-	if ast.tag=='Error' then
-		local pos = tostring(ast.lineinfo.first)
-		return pos..": "..ast[1]
-	end
-	for _, item in ipairs(ast) do
-		if type(item)=='table' then
-			local err=find_error(item)
-			if err then return err end
-		end
-	end
-	nested[ast]=nil
-	return nil
-end
-
 local CONV = { } -- conversion metatable __index
 
 function CONV :srcfile_to_src(x, name)
@@ -176,8 +92,6 @@ end
 function CONV :ast_to_proto(ast, name)
 	checks('metalua.compiler', 'table', '?string')
 	--table.print(ast, 'nohash', 1) io.flush()
-	local err = find_error(ast)
-	if err then  error(err) end
 	local f = require 'metalua.compiler.bytecode.compile'.ast_to_proto
 	return f(ast, name), name
 end

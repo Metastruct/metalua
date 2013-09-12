@@ -19,15 +19,6 @@
 
 --------------------------------------------------------------------------------
 --
--- Copyright (c) 2006-2012, Fabien Fleutot <metalua@gmail.com>.
---
--- This software is released under the MIT Licence, see licence.txt
--- for details.
---
---------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
---
 -- Exported API:
 -- * [M.bracket_field()]
 -- * [M.field()]
@@ -60,17 +51,16 @@ M.bracket_field = gg.sequence{ "[", _expr, "]", "=", _expr, builder = "Pair" }
 function M.field (lx)
    if lx :is_keyword (lx :peek(), "[") then return M.bracket_field (lx) end
    local e = _expr (lx)
-   if lx :is_keyword (lx :peek(), "=") then 
+   if lx :is_keyword (lx :peek(), "=") then
       lx :next(); -- skip the "="
       -- Allowing only the right type of key, here `Id
       local etag = e.tag
       if etag ~= 'Id' then
-         local message = string.format('Identifier expected, got %s.', etag)
-         return gg.parse_error(lx, message)
+         gg.parse_error(lx, 'Identifier expected, got %s.', etag)
       end
       local key = mlp.id2string(e)
       local val = _expr(lx)
-      local r = { tag="Pair", key, val } 
+      local r = { tag="Pair", key, val }
       r.lineinfo = { first = key.lineinfo.first, last = val.lineinfo.last }
       return r
    else return e end
@@ -79,9 +69,9 @@ end
 --------------------------------------------------------------------------------
 -- table constructor, without enclosing braces; returns a full table object
 --------------------------------------------------------------------------------
-M.content  = gg.list { 
-   primary     =  function(...) return M.field(...) end, 
-   separators  = { ",", ";" }, 
+M.content  = gg.list {
+   primary     =  function(...) return M.field(...) end,
+   separators  = { ",", ";" },
    terminators = "}",
    builder     = "Table" }
 

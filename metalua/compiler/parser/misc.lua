@@ -77,7 +77,7 @@ function M.opt_id (lx)
    if lx:is_keyword (a, "-{") then
        local v = splice(lx)
        if v.tag ~= "Id" and v.tag ~= "Splice" then
-           return gg.parse_error(lx, "Bad id splice")
+           gg.parse_error(lx, "Bad id splice")
        end
        return v
    elseif a.tag == "Id" then return lx:next()
@@ -111,9 +111,8 @@ function M.id2string (id)
       -- Morally, this is what I want:
       -- return `String{ `Index{ `Splice{ id[1] }, `Number 1 } }
       -- That is, without sugar:
-      return {tag="String",  {tag="Index", {tag="Splice", id[1] }, 
+      return {tag="String",  {tag="Index", {tag="Splice", id[1] },
                                            {tag="Number", 1 } } }
-   elseif id.tag == 'Error' then return id
    else error ("Identifier expected: "..table.tostring(id, 'nohash')) end
 end
 
@@ -125,7 +124,7 @@ function M.string (lx)
    if lx:is_keyword (a, "-{") then
       local v = splice(lx)
       if v.tag ~= "String" and v.tag ~= "Splice" then
-         return gg.parse_error(lx,"Bad string splice")
+         gg.parse_error(lx,"Bad string splice")
       end
       return v
    elseif a.tag == "String" then return lx:next()
@@ -157,11 +156,11 @@ end
 local function chunk (lx)
    if lx:peek().tag == 'Eof' then
        return { } -- handle empty files
-   else 
+   else
       M.skip_initial_sharp_comment (lx)
       local chunk = mlp.block (lx)
-      if lx:peek().tag ~= "Eof" then 
-          table.insert(chunk, gg.parse_error(lx, "End-of-file expected"))
+      if lx:peek().tag ~= "Eof" then
+          gg.parse_error(lx, "End-of-file expected")
       end
       return chunk
    end

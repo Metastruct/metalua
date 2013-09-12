@@ -56,7 +56,7 @@ local expr_list = function (lx) return mlp.expr_list(lx) end
 M.block_terminators = { "else", "elseif", "end", "until", ")", "}", "]" }
 
 -- FIXME: this must be handled from within GG!!!
-function M.block_terminators :add(x) 
+function M.block_terminators :add(x)
    if type (x) == "table" then for _, y in ipairs(x) do self :add (y) end
    else table.insert (self, x) end
 end
@@ -84,15 +84,15 @@ M.block = gg.list {
 -- sync if it was relying on a copy.
 --------------------------------------------------------------------------------
 local return_expr_list_parser = gg.multisequence{
-   { ";" , builder = function() return { } end }, 
-   default = gg.list { 
+   { ";" , builder = function() return { } end },
+   default = gg.list {
       expr, separators = ",", terminators = M.block_terminators } }
 
 
 local for_vars_list = gg.list{
     name        = "for variables list",
     primary     = mlp_misc.id,
-    separators  = ",", 
+    separators  = ",",
     terminators = "in" }
 
 --------------------------------------------------------------------------------
@@ -101,19 +101,19 @@ local for_vars_list = gg.list{
 --------------------------------------------------------------------------------
 function M.for_header (lx)
     local vars = mlp.id_list(lx)
-    if lx :is_keyword (lx:peek(), "=") then       
-        if #vars ~= 1 then 
-            return gg.parse_error (lx, "numeric for only accepts one variable")
+    if lx :is_keyword (lx:peek(), "=") then
+        if #vars ~= 1 then
+            gg.parse_error (lx, "numeric for only accepts one variable")
         end
         lx:next() -- skip "="
         local exprs = mlp.expr_list (lx)
         if #exprs < 2 or #exprs > 3 then
-            return gg.parse_error (lx, "numeric for requires 2 or 3 boundaries")
+            gg.parse_error (lx, "numeric for requires 2 or 3 boundaries")
         end
         return { tag="Fornum", vars[1], unpack (exprs) }
     else
         if not lx :is_keyword (lx :next(), "in") then
-            return gg.parse_error (lx, '"=" or "in" expected in for loop')
+            gg.parse_error (lx, '"=" or "in" expected in for loop')
         end
         local exprs = mlp.expr_list (lx)
         return { tag="Forin", vars, exprs }
@@ -133,7 +133,7 @@ local func_name = gg.list{ mlp_misc.id, separators = ".", builder = fn_builder }
 --------------------------------------------------------------------------------
 -- Function def parser helper: ( : id )?
 --------------------------------------------------------------------------------
-local method_name = gg.onkeyword{ name = "method invocation", ":", mlp_misc.id, 
+local method_name = gg.onkeyword{ name = "method invocation", ":", mlp_misc.id,
    transformers = { function(x) return x and x.tag=='Id' and mlp_misc.id2string(x) end } }
 
 --------------------------------------------------------------------------------
@@ -141,33 +141,29 @@ local method_name = gg.onkeyword{ name = "method invocation", ":", mlp_misc.id,
 --------------------------------------------------------------------------------
 local function funcdef_builder(x)
 
-   local name   = x[1] or gg.earlier_error()
-   local method = x[2]
-   local func   = x[3] or gg.earlier_error()
+   local name, method, func = unpack(x)
 
-
-   if method then 
+   if method then
       name = { tag="Index", name, method, lineinfo = {
          first = name.lineinfo.first,
          last  = method.lineinfo.last } }
-      table.insert (func[1], 1, {tag="Id", "self"}) 
+      table.insert (func[1], 1, {tag="Id", "self"})
    end
-   local r = { tag="Set", {name}, {func} } 
+   local r = { tag="Set", {name}, {func} }
    r[1].lineinfo = name.lineinfo
    r[2].lineinfo = func.lineinfo
    return r
-end 
+end
 
 
 --------------------------------------------------------------------------------
 -- if statement builder
 --------------------------------------------------------------------------------
 local function if_builder (x)
-   local cb_pairs, else_block, r = x[1], x[2], {tag="If"}
-   if cb_pairs.tag=='Error' then return cb_pairs end -- propagate errors
-   local n_pairs = #cb_pairs
+   local cond_block_pairs, else_block, r = x[1], x[2], {tag="If"}
+   local n_pairs = #cond_block_pairs
    for i = 1, n_pairs do
-       local cond, block = unpack(cb_pairs[i])
+       local cond, block = unpack(cond_block_pairs[i])
        r[2*i-1], r[2*i] = cond, block
    end
    if else_block then table.insert(r, #r+1, else_block) end
@@ -214,20 +210,21 @@ local function assign_or_call_stat_parser (lx)
    else
       assert (#e > 0)
       if #e > 1 then
-         return gg.parse_error (lx,
+         gg.parse_error (lx,
             "comma is not a valid statement separator; statement can be "..
             "separated by semicolons, or not separated at all") end
       if e[1].tag ~= "Call" and e[1].tag ~= "Invoke" then
          local typename
          if e[1].tag == 'Id' then
             typename = '("'..e[1][1]..'") is an identifier'
-         elseif e[1].tag == 'Op' then 
+         elseif e[1].tag == 'Op' then
             typename = "is an arithmetic operation"
          else typename = "is of type '"..(e[1].tag or "<list>").."'" end
 
-         return gg.parse_error (lx, "This expression " .. typename ..
-            "; a statement was expected, and only function and method call "..
-            "expressions can be used as statements");
+         gg.parse_error (lx,
+                         "This expression %s; "..
+                         "a statement was expected, and only function and method call "..
+                         "expressions can be used as statements", typename);
       end
       return e[1]
    end
@@ -235,14 +232,14 @@ end
 
 M.local_stat_parser = gg.multisequence{
     -- local function <name> <func_val>
-    { "function", mlp_misc.id, func_val, builder = 
-      function(x) 
+    { "function", mlp_misc.id, func_val, builder =
+      function(x)
           local vars = { x[1], lineinfo = x[1].lineinfo }
           local vals = { x[2], lineinfo = x[2].lineinfo }
-          return { tag="Localrec", vars, vals } 
+          return { tag="Localrec", vars, vals }
       end },
     -- local <id_list> ( = <expr_list> )?
-    default = gg.sequence{ 
+    default = gg.sequence{
         gg.list{
             primary = annot.opt(mlp_misc.id, 'tf'),
             separators = ',' },
@@ -256,17 +253,17 @@ M.local_stat_parser = gg.multisequence{
 --------------------------------------------------------------------------------
 -- statement
 --------------------------------------------------------------------------------
-M.stat = gg.multisequence { 
+M.stat = gg.multisequence {
    name = "statement",
-   { "do", M.block, "end", builder = 
+   { "do", M.block, "end", builder =
       function (x) return { tag="Do", unpack (x[1]) } end },
-   { "for", M.for_header, "do", M.block, "end", builder = 
+   { "for", M.for_header, "do", M.block, "end", builder =
       function (x) x[1][#x[1]+1] = x[2]; return x[1] end },
    { "function", func_name, method_name, func_val, builder=funcdef_builder },
    { "while", expr, "do", M.block, "end", builder = "While" },
    { "repeat", M.block, "until", expr, builder = "Repeat" },
    { "local", M.local_stat_parser, builder = unpack },
-   { "return", return_expr_list_parser, builder = 
+   { "return", return_expr_list_parser, builder =
      function(x) x[1].tag='Return'; return x[1] end },
    { "break", builder = function() return { tag="Break" } end },
    { "-{", mlp_meta.splice_content, "}", builder = unpack },

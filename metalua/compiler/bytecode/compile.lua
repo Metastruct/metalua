@@ -20,41 +20,10 @@
 
 ----------------------------------------------------------------------
 --
--- WARNING! You're entering a hackish area, proceed at your own risks!
+-- This code mainly results from the borrowing, then ruthless abuse, of
+-- Yueliang's implementation of Lua 5.0 compiler.
 --
--- This code partly results from the borrowing, then ruthless abuse, of
--- Yueliang's implementation of Lua 5.0 compiler. I claim
--- responsibility for all of the ugly, dirty stuff that you might spot
--- in it.
---
--- Eventually, this code will be rewritten, either in Lua or more
--- probably in C. Meanwhile, if you're interested into digging
--- metalua's sources, this is not the best part to invest your time
--- on.
---
--- End of warning.
---
-----------------------------------------------------------------------
-
-----------------------------------------------------------------------
--- Metalua.
---
--- Summary: Compile ASTs to Lua 5.1 VM function prototype. 
--- Largely based on:
---
--- * Yueliang (http://luaforge.net/projects/yueliang),
---   yueliang-0.1.2/orig-5.0.2/lparser.lua
---
--- * Lua 5.1 sources (http://www.lua.org), src/lparser.c
---
-----------------------------------------------------------------------
---
--- Copyright (c) 2006-2008, Fabien Fleutot <metalua@gmail.com>.
---
--- This software is released under the MIT Licence, see licence.txt
--- for details.
---
-----------------------------------------------------------------------
+---------------------------------------------------------------------
 
 local luaK = require 'metalua.compiler.bytecode.lcode'
 local luaP = require 'metalua.compiler.bytecode.lopcodes'
@@ -748,9 +717,7 @@ function stat.Return (fs, ast)
          first = fs.nactvar
          nret = luaK.LUA_MULTRET  -- return all values
       elseif nret == 1 then
-         if ast[1].tag ~= "Error" then
-            first = luaK:exp2anyreg(fs, e)
-         end
+         first = luaK:exp2anyreg(fs, e)
       else
          --printf("* Return multiple vals in nextreg %i", fs.freereg)
          luaK:exp2nextreg(fs, e)  -- values must go to the 'stack'
@@ -1275,8 +1242,6 @@ function expr.Stat (fs, ast, v)
    --printf(" * End of Stat")
 end
 
-function expr.Error() end
-
 ------------------------------------------------------------------------
 -- Main function: ast --> proto
 ------------------------------------------------------------------------
@@ -1291,14 +1256,5 @@ function M.ast_to_proto (ast, source)
   if source then fs.f.source = source end
   return fs.f, source
 end
-
-local function Error (fs, ast, v)
-    local msg = string.format ("Error node in AST at position %s: %s",
-                               tostring(ast.lineinfo),
-                               table.tostring(ast, nohash))
-    error(msg)
-end
-
-expr.Error, stat.Error = Error, Error
 
 return M

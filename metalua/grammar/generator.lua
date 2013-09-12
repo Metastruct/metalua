@@ -66,25 +66,11 @@ end
 -------------------------------------------------------------------------------
 -- parser metatable, which maps __call to method parse, and adds some
 -- error tracing boilerplate.
---
--- TODO: parsers don't throw errors anymore, they return `Error{ } nodes instead.
--- Therefore the accumulation of error positions won't work anymore.
--- Instead, the mlc.check_ast() function should retrace the whole path to
--- the actual error position.
---
 -------------------------------------------------------------------------------
 local parser_metatable = { }
 
 function parser_metatable :__call (lx, ...)
-    --return self :parse(lx, ...)
-    local r = self :parse (lx, ...)
-    if r and type(r) ~= 'table' then
-        printf("Grammar generator: parser %s returned non-table %s at %s",
-               table.tostring(self.name),
-               table.tostring(r),
-               table.tostring((...):peek()))
-    end
-    return r
+    return self :parse (lx, ...)
 end
 
 -------------------------------------------------------------------------------
@@ -110,39 +96,26 @@ end
 
 -------------------------------------------------------------------------------
 -- Parse a sequence, without applying builder nor transformers.
--- Won't fail: if the parsing can't be completed, the missing results
--- will be filled with Error nodes.
---
--- TODO: This introduces a new assumption in gg that it must produce
--- AST as results. This should be decoupled by passing an error handler
--- from outside.
 -------------------------------------------------------------------------------
 local function raw_parse_sequence (lx, p)
-   local r = { }
-   local failed = false
-   for i=1, #p do
-      local e=p[i]
-      if failed then
-         if type(e)=="string" then table.insert(r, M.earlier_error(lx)) end
-      elseif type(e) == "string" then
-         local kw = lx :next()
-         if not lx :is_keyword (kw, e) then
-            table.insert(r, {
-                tag = 'Error',
-                lineinfo = kw.lineinfo,
-                "A keyword was expected, probably `"..e.."'."})
-            failed=true
-         end
-      elseif M.is_parser (e) then
-         local x = e(lx)
-         if type(x)=='table' and x.tag=='Error' then failed=true end
-         table.insert (r, x)
-      else -- Invalid parser definition, this is not a parsing error, it must fail.
-         return M.parse_error (lx,"Sequence `%s': element #%i is neither a string "..
-             "nor a parser: %s", p.name, i, table.tostring(e))
-      end
-   end
-   return r
+    local r = { }
+    for i=1, #p do
+        local e=p[i]
+        if type(e) == "string" then
+            local kw = lx :next()
+            if not lx :is_keyword (kw, e) then
+                M.parse_error(
+                    lx, "A keyword was expected, probably `%s'.", e)
+            end
+        elseif M.is_parser (e) then
+            table.insert (r, e(lx))
+        else -- Invalid parser definition, this is *not* a parsing error
+            error(string.format(
+                      "Sequence `%s': element #%i is neither a string nor a parser: %s",
+                      p.name, i, table.tostring(e)))
+        end
+    end
+    return r
 end
 
 -------------------------------------------------------------------------------
@@ -185,35 +158,20 @@ function M.parse_error(lx, fmt, ...)
       line, column, offset = -1, -1, -1
    end
 
-   local msg  = string.format("line %i, char %i: "..fmt, line, column, ...)   
+   local msg  = string.format("line %i, char %i: "..fmt, line, column, ...)
    local src = lx.src
    if offset>0 and src then
       local i, j = offset, offset
       while src:sub(i,i) ~= '\n' and i>=0    do i=i-1 end
-      while src:sub(j,j) ~= '\n' and j<=#src do j=j+1 end      
+      while src:sub(j,j) ~= '\n' and j<=#src do j=j+1 end
       local srcline = src:sub (i+1, j-1)
       local idx  = string.rep (" ", column).."^"
       msg = string.format("%s\n>>> %s\n>>> %s", msg, srcline, idx)
    end
-   lx :kill()
-   return { tag='Error', msg , lineinfo = positions }
+   --lx :kill()
+   error(msg)
 end
 
-function M.wrap_error(lx, nchildren, tag, ...)
-    local li = lx :peek() .lineinfo
-    local r = { tag=tag or 'Error', lineinfo=li }
-    local children = {...}
-    for i=1, nchildren do
-        r[i] = children[i] or M.earlier_error(lx)
-    end
-    return r
-end
-
-function M.earlier_error(lx)
-    local li = lx and lx :peek().lineinfo
-    return { tag='Error', "earlier error", lineinfo=li, error=true, earlier=true }
-end
-   
 -------------------------------------------------------------------------------
 --
 -- Sequence parser generator
@@ -232,7 +190,7 @@ end
 -- * [transformers]: a list of AST->AST functions, applied in order on ASTs
 --   returned by the parser.
 --
--- * Table-part entries corresponds to keywords (strings) and subparsers 
+-- * Table-part entries corresponds to keywords (strings) and subparsers
 --   (function and callable objects).
 --
 -- After creation, the following fields are added:
@@ -322,7 +280,7 @@ end --</sequence>
 -- * [kind] == "multisequence"
 --
 -------------------------------------------------------------------------------
-function M.multisequence (p)   
+function M.multisequence (p)
    M.make_parser ("multisequence", p)
 
    -------------------------------------------------------------------
@@ -332,7 +290,7 @@ function M.multisequence (p)
       -- compile if necessary:
       local keyword = type(s)=='table' and s[1]
       if type(s)=='table' and not M.is_parser(s) then M.sequence(s) end
-      if M.is_parser(s)~='sequence' or type(keyword)~='string' then 
+      if M.is_parser(s)~='sequence' or type(keyword)~='string' then
          if self.default then -- two defaults
             error ("In a multisequence parser, all but one sequences "..
                    "must start with a keyword")
@@ -355,8 +313,8 @@ function M.multisequence (p)
    -------------------------------------------------------------------
    -- Remove the sequence starting with keyword [kw :: string]
    -------------------------------------------------------------------
-   function p :del (kw) 
-      if not self.sequences[kw] then 
+   function p :del (kw)
+      if not self.sequences[kw] then
          eprintf("*** Warning: trying to delete sequence starting "..
                  "with %q from a multisequence having no such "..
                  "entry ***", kw) end
@@ -534,7 +492,7 @@ function M.expr (p)
          -- Check for non-associative operators, and complain if applicable. 
          -----------------------------------------
          elseif p2.assoc=="none" and p2.prec==prec then
-            return M.parse_error (lx, "non-associative operator!")
+            M.parse_error (lx, "non-associative operator!")
 
          -----------------------------------------
          -- No infix operator suitable at that precedence
@@ -632,23 +590,21 @@ function M.list (p)
    function p :parse (lx)
 
       ------------------------------------------------------
-      -- Used to quickly check whether there's a terminator 
+      -- Used to quickly check whether there's a terminator
       -- or a separator immediately ahead
       ------------------------------------------------------
-      local function peek_is_in (keywords) 
+      local function peek_is_in (keywords)
          return keywords and lx:is_keyword(lx:peek(), unpack(keywords)) end
 
       local x = { }
       local fli = lx :lineinfo_right()
 
       -- if there's a terminator to start with, don't bother trying
-      if not peek_is_in (self.terminators) then 
+      if not peek_is_in (self.terminators) then
          repeat
              local item = self.primary(lx)
              table.insert (x, item) -- read one element
          until
-            -- Don't go on after an error
-            type(item)=='table' and item.tag=='Error' or
             -- There's a separator list specified, and next token isn't in it.
             -- Otherwise, consume it with [lx:next()]
             self.separators and not(peek_is_in (self.separators) and lx:next()) or
@@ -659,8 +615,8 @@ function M.list (p)
       end
 
       local lli = lx:lineinfo_left()
-      
-      -- Apply the builder. It can be a string, or a callable value, 
+
+      -- Apply the builder. It can be a string, or a callable value,
       -- or simply nothing.
       local b = self.builder
       if b then
@@ -752,7 +708,7 @@ function M.onkeyword (p)
       if type(x)=="string" then table.insert (p.keywords, x)
       else assert (not p.primary and M.is_parser (x)); p.primary = x end
    end
-   if not next (p.keywords) then 
+   if not next (p.keywords) then
       eprintf("Warning, no keyword to trigger gg.onkeyword") end
    assert (p.primary, 'no primary parser in gg.onkeyword')
    return p
@@ -839,7 +795,7 @@ function M.nonempty(primary)
          local li = content.lineinfo or { }
          fli, lli = li.first or fli, li.last or lli
          if #content == 0 then
-           return gg.parse_error (lx, "`%s' must not be empty.", self.name or "list")
+           M.parse_error (lx, "`%s' must not be empty.", self.name or "list")
        else
            return transform (content, self, fli, lli)
        end
