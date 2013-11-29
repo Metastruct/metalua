@@ -33,6 +33,7 @@
 --
 -------------------------------------------------------------------------------
 
+local lexer    = require 'metalua.grammar.lexer'
 local mlp      = require 'metalua.compiler.parser.common'
 local mlp_misc = require 'metalua.compiler.parser.misc'
 local mlp_meta = require 'metalua.compiler.parser.meta'
@@ -124,9 +125,14 @@ end
 -- Function def parser helper: id ( . id ) *
 --------------------------------------------------------------------------------
 local function fn_builder (list)
-   local r = list[1]
-   for i = 2, #list do r = { tag="Index", r, mlp.id2string(list[i]) } end
-   return r
+   local acc = list[1]
+   local first = acc.lineinfo.first
+   for i = 2, #list do
+       local index = mlp.id2string(list[i])
+       local li = lexer.new_lineinfo(first, index.lineinfo.last)
+       acc = { tag="Index", acc, index, lineinfo=li }
+   end
+   return acc
 end
 local func_name = gg.list{ mlp_misc.id, separators = ".", builder = fn_builder }
 
