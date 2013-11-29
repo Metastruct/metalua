@@ -600,7 +600,8 @@ function M.list (p)
       local fli = lx :lineinfo_right()
 
       -- if there's a terminator to start with, don't bother trying
-      if not peek_is_in (self.terminators) then
+      local is_empty_list = self.terminators and (peek_is_in (self.terminators) or lx:peek().tag=="Eof")
+      if not is_empty_list then
          repeat
              local item = self.primary(lx)
              table.insert (x, item) -- read one element
