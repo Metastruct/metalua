@@ -30,6 +30,7 @@ dependencies = {
 build = {
     type="builtin",
     modules={
+        ["metalua"] = "metalua.lua",
         ["metalua.compiler.bytecode"] = "metalua/compiler/bytecode.lua",
         ["metalua.compiler.globals"] = "metalua/compiler/globals.lua",
         ["metalua.compiler.bytecode.compile"] = "metalua/compiler/bytecode/compile.lua",
