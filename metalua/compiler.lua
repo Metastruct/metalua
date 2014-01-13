@@ -60,7 +60,7 @@ local arg_types = {
 	bytecode   = { 'string', '?string' },
 }
 
-if true then
+if false then
     -- if defined, runs on every newly-generated AST
     function M.check_ast(ast)
         local function rec(x, n, parent)
