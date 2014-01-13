@@ -44,7 +44,6 @@ build = {
         ["metalua.treequery.walk"] = "metalua/treequery/walk.mlua",
         ["metalua.extension.match"] = "metalua/extension/match.mlua",
         ["metalua.extension.comprehension"] = "metalua/extension/comprehension.mlua",
-        ["metalua.extension.log"] = "metalua/extension/log.mlua",
         ["metalua.repl"] = "metalua/repl.mlua",
     }}
 }
