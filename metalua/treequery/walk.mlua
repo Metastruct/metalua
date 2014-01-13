@@ -48,19 +48,25 @@
 --
 -- corresponding walk.xxx functions also take care of calling cfg callbacks.
 
--{ extension ("match",...) }
+-{ extension ("match", ...) }
+
+local pp = require 'metalua.pprint'
 
 local M = { traverse = { }; tags = { }; debug = false }
+
+local function table_transpose(t)
+    local tt = { }; for a, b in pairs(t) do tt[b]=a end; return tt
+end
 
 --------------------------------------------------------------------------------
 -- Standard tags: can be used to guess the type of an AST, or to check
 -- that the type of an AST is respected.
 --------------------------------------------------------------------------------
-M.tags.stat = table.transpose{ 
+M.tags.stat = table_transpose{
    'Do', 'Set', 'While', 'Repeat', 'Local', 'Localrec', 'Return',
    'Fornum', 'Forin', 'If', 'Break', 'Goto', 'Label',
    'Call', 'Invoke' }
-M.tags.expr = table.transpose{
+M.tags.expr = table_transpose{
    'Paren', 'Call', 'Invoke', 'Index', 'Op', 'Function', 'Stat',
    'Table', 'Nil', 'Dots', 'True', 'False', 'Number', 'String', 'Id' }
 
@@ -69,7 +75,7 @@ M.tags.expr = table.transpose{
 -- ASTs. At each node, they make sure to call the appropriate walker.
 --------------------------------------------------------------------------------
 function M.traverse.stat (cfg, x, ...)
-   if M.debug then printf("traverse stat %s", table.tostring(x)) end
+   if M.debug then pp.printf("traverse stat %s", x) end
    local ancestors = {...}
    local B  = |y| M.block       (cfg, y, x, unpack(ancestors)) -- Block
    local S  = |y| M.stat        (cfg, y, x, unpack(ancestors)) -- Statement
@@ -82,7 +88,7 @@ function M.traverse.stat (cfg, x, ...)
    match x with
    | {...} if x.tag == nil -> for _, y in ipairs(x) do M.stat(cfg, y, ...) end
                           -- no tag --> node not inserted in the history ancestors
-   | `Do{...}                    -> OS(x); for _, y in ipairs(x) do S(y) end; CS(x) 
+   | `Do{...}                    -> OS(x); for _, y in ipairs(x) do S(y) end; CS(x)
    | `Set{ lhs, rhs }            -> EL(lhs); EL(rhs)
    | `While{ cond, body }        -> E(cond); OS(); B(body); CS()
    | `Repeat{ body, cond }       -> OS(body); B(body); E(cond); CS(body)
@@ -92,24 +98,24 @@ function M.traverse.stat (cfg, x, ...)
    | `Fornum{ i, a, b, body }    -> E(a); E(b); OS(); IL{i}; B(body); CS()
    | `Fornum{ i, a, b, c, body } -> E(a); E(b); E(c); OS(); IL{i}; B(body); CS()
    | `Forin{ i, rhs, body }      -> EL(rhs); OS(); IL(i); B(body); CS()
-   | `If{...}                    -> 
+   | `If{...}                    ->
        for i=1, #x-1, 2 do
-           E(x[i]); OS(); B(x[i+1]); CS() 
+           E(x[i]); OS(); B(x[i+1]); CS()
        end
-       if #x%2 == 1 then 
+       if #x%2 == 1 then
            OS(); B(x[#x]); CS()
        end
    | `Call{...}|`Invoke{...}|`Return{...} -> EL(x)
    | `Break | `Goto{ _ } | `Label{ _ }    -> -- nothing
-   | { tag=tag, ...} if M.tags.stat[tag]-> 
+   | { tag=tag, ...} if M.tags.stat[tag]->
       M.malformed (cfg, x, unpack (ancestors))
-   | _ ->  
+   | _ ->
       M.unknown (cfg, x, unpack (ancestors))
    end
 end
 
 function M.traverse.expr (cfg, x, ...)
-   if M.debug then printf("traverse expr %s", table.tostring(x)) end
+   if M.debug then pp.printf("traverse expr %s", x) end
    local ancestors = {...}
    local B  = |y| M.block       (cfg, y, x, unpack(ancestors)) -- Block
    local S  = |y| M.stat        (cfg, y, x, unpack(ancestors)) -- Statement
@@ -125,7 +131,7 @@ function M.traverse.expr (cfg, x, ...)
    | `Index{ a, b }            -> E(a); E(b)
    | `Op{ opid, ... }          -> E(x[2]); if #x==3 then E(x[3]) end
    | `Function{ params, body } -> OS(body); IL(params); B(body); CS(body)
-   | `Stat{ b, e }             -> OS(body); B(b); E(e); CS(body)
+   | `Stat{ b, e }             -> OS(b); B(b); E(e); CS(b)
    | `Id{ name }               -> M.occurrence(cfg, x, unpack(ancestors))
    | `Table{ ... }             ->
       for i = 1, #x do match x[i] with
@@ -225,7 +231,7 @@ function M.guess (cfg, x, ...)
    if M.tags.expr[x.tag] then return M.expr(cfg, x, ...)  end
    if M.tags.stat[x.tag] then return M.stat(cfg, x, ...)  end
    if not x.tag          then return M.block(cfg, x, ...) end
-   error ("Can't guess the AST type from tag "..(x.tag or '<none>')) 
+   error ("Can't guess the AST type from tag "..(x.tag or '<none>'))
 end
 
 local S = { }; S.__index = S
@@ -238,7 +244,9 @@ function M.newscope()
 end
 
 function S :save(...)
-    table.insert (self.stack, table.shallow_copy (self.current))
+    local current_copy = { }
+    for a, b in pairs(self.current) do current_copy[a]=b end
+    table.insert (self.stack, current_copy)
     if ... then return self :add(...) end
 end
 

@@ -17,14 +17,13 @@
 --
 --------------------------------------------------------------------------------
 
-do
-   local xrequire, n, ind = require, 0, "| "
-   function require (x)
-      print(ind:rep(n).."/ require: "..x)
-      n=n+1
-      local y = xrequire(x)
-      n=n-1
-      print(ind:rep(n).."\\_")
-      return y
-   end
-end
+local compile = require 'metalua.compiler.bytecode.compile'
+local ldump   = require 'metalua.compiler.bytecode.ldump'
+
+local M = { }
+
+M.ast_to_proto      = compile.ast_to_proto
+M.proto_to_bytecode = ldump.dump_string
+M.proto_to_file     = ldump.dump_file
+
+return M

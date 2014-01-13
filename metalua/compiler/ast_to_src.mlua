@@ -22,6 +22,8 @@
 local M = { }
 M.__index = M
 
+local pp=require 'metalua.pprint'
+
 --------------------------------------------------------------------------------
 -- Instanciate a new AST->source synthetizer
 --------------------------------------------------------------------------------
@@ -84,18 +86,20 @@ end
 --------------------------------------------------------------------------------
 -- Keywords, which are illegal as identifiers.
 --------------------------------------------------------------------------------
-local keywords = table.transpose {
+local keywords_list = {
    "and",    "break",   "do",    "else",   "elseif",
    "end",    "false",   "for",   "function", "if",
    "in",     "local",   "nil",   "not",    "or",
    "repeat", "return",  "then",  "true",   "until",
    "while" }
+local keywords = { }
+for _, kw in pairs(keywords_list) do keywords[kw]=true end
 
 --------------------------------------------------------------------------------
 -- Return true iff string `id' is a legal identifier name.
 --------------------------------------------------------------------------------
 local function is_ident (id)
-   return id:strmatch "^[%a_][%w_]*$" and not keywords[id]
+    return string['match'](id, "^[%a_][%w_]*$") and not keywords[id]
 end
 
 --------------------------------------------------------------------------------
@@ -119,7 +123,7 @@ end
 local op_preprec = {
    { "or", "and" },
    { "lt", "le", "eq", "ne" },
-   { "concat" }, 
+   { "concat" },
    { "add", "sub" },
    { "mul", "div", "mod" },
    { "unary", "not", "len" },
@@ -168,7 +172,7 @@ function M:node (node)
       else -- No appropriate method, fall back to splice dumping.
            -- This cannot happen in a plain Lua AST.
          self:acc " -{ "
-         self:acc (table.tostring (node, "nohash"), 80)
+         self:acc (pp.tostring (node, {metalua_tag=1, hide_hash=1}), 80)
          self:acc " }"
       end
    end
@@ -180,13 +184,13 @@ end
 -- it can be a string or a synth method.
 -- `start' is an optional number (default == 1), indicating which is the
 -- first element of list to be converted, so that we can skip the begining
--- of a list. 
+-- of a list.
 --------------------------------------------------------------------------------
 function M:list (list, sep, start)
    for i = start or 1, # list do
       self:node (list[i])
       if list[i + 1] then
-         if not sep then 
+         if not sep then
          elseif type (sep) == "function" then sep (self)
          elseif type (sep) == "string"   then self:acc (sep)
          else   error "Invalid list separator" end
@@ -210,7 +214,7 @@ end
 -- There are several things that could be refactored into common subroutines
 -- here: statement blocks dumping, function dumping...
 -- However, given their small size and linear execution
--- (they basically perform series of :acc(), :node(), :list(), 
+-- (they basically perform series of :acc(), :node(), :list(),
 -- :nl(), :nlindent() and :nldedent() calls), it seems more readable
 -- to avoid multiplication of such tiny functions.
 --
@@ -229,8 +233,8 @@ end
 
 function M:Set (node)
    match node with
-   | `Set{ { `Index{ lhs, `String{ method } } }, 
-           { `Function{ { `Id "self", ... } == params, body } } } 
+   | `Set{ { `Index{ lhs, `String{ method } } },
+           { `Function{ { `Id "self", ... } == params, body } } }
          if is_idx_stack (lhs) and is_ident (method) ->
       -- ``function foo:bar(...) ... end'' --
       self:acc      "function "
@@ -257,7 +261,7 @@ function M:Set (node)
       self:nldedent ()
       self:acc      "end"
 
-   | `Set{ { `Id{ lhs1name } == lhs1, ... } == lhs, rhs } 
+   | `Set{ { `Id{ lhs1name } == lhs1, ... } == lhs, rhs }
          if not is_ident (lhs1name) ->
       -- ``foo, ... = ...'' when foo is *not* a valid identifier.
       -- In that case, the spliced 1st variable must get parentheses,
@@ -284,7 +288,7 @@ function M:Set (node)
       for i=1,n do
           local ell, a = lhs[i], annot[i]
           self:node (ell)
-          if a then 
+          if a then
               self:acc ' #'
               self:node(a)
           end
@@ -326,7 +330,7 @@ function M:If (node)
       self:nldedent ()
    end
    -- odd number of children --> last one is an `else' clause --
-   if #node%2 == 1 then 
+   if #node%2 == 1 then
       self:acc      "else"
       self:nlindent ()
       self:list     (node[#node], self.nl)
@@ -407,7 +411,7 @@ function M:Localrec (node, lhs, rhs)
       self:nldedent ()
       self:acc      "end"
 
-   | _ -> 
+   | _ ->
       -- Other localrec are unprintable ==> splice them --
           -- This cannot happen in a plain Lua AST. --
       self:acc "-{ "
@@ -509,7 +513,7 @@ function M:Table (node)
             self:acc  "] = "
             self:node (value)
 
-         | _ -> 
+         | _ ->
             -- ``value''. --
             self:node (elem)
          end
@@ -527,7 +531,7 @@ function M:Op (node, op, a, b)
    -- Transform ``not (a == b)'' into ``a ~= b''. --
    match node with
    | `Op{ "not", `Op{ "eq", _a, _b } }
-   | `Op{ "not", `Paren{ `Op{ "eq", _a, _b } } } ->  
+   | `Op{ "not", `Paren{ `Op{ "eq", _a, _b } } } ->
       op, a, b = "ne", _a, _b
    | _ ->
    end
@@ -586,11 +590,11 @@ function M:Index (node, table, key)
    self:acc  (paren_table and ")")
 
    match key with
-   | `String{ field } if is_ident (field) -> 
+   | `String{ field } if is_ident (field) ->
       -- ``table.key''. --
       self:acc "."
       self:acc (field)
-   | _ -> 
+   | _ ->
       -- ``table [key]''. --
       self:acc   "["
       self:node (key)
@@ -606,7 +610,7 @@ function M:Id (node, name)
       self:acc    "-{`Id "
       self:String (node, name)
       self:acc    "}"
-   end 
+   end
 end
 
 

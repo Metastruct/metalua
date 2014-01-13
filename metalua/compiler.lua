@@ -1,4 +1,4 @@
---------------------------------------------------------------------------------
+---------------------------------------------------------------------------
 -- Copyright (c) 2006-2013 Fabien Fleutot and others.
 --
 -- All rights reserved.
@@ -25,21 +25,20 @@
 --
 -- Supported formats are:
 --
--- * luafile:    the name of a file containing sources.
--- * luastring:  these sources as a single string.
+-- * srcfile:    the name of a file containing sources.
+-- * src:        these sources as a single string.
 -- * lexstream:  a stream of lexemes.
 -- * ast:        an abstract syntax tree.
 -- * proto:      a (Yueliang) struture containing a high level
 --               representation of bytecode. Largely based on the
 --               Proto structure in Lua's VM
--- * luacstring: a string dump of the function, as taken by
+-- * bytecode:   a string dump of the function, as taken by
 --               loadstring() and produced by string.dump().
 -- * function:   an executable lua function in RAM.
 --
 --------------------------------------------------------------------------------
 
 require 'checks'
-require 'metalua.table'
 
 local M  = { }
 
@@ -61,7 +60,25 @@ local arg_types = {
 	bytecode   = { 'string', '?string' },
 }
 
-M.order = table.transpose(M.sequence)
+if true then
+    -- if defined, runs on every newly-generated AST
+    function M.check_ast(ast)
+        local function rec(x, n, parent)
+            if not x.lineinfo and parent.lineinfo then
+                local pp = require 'metalua.pprint'
+                pp.printf("WARNING: Missing lineinfo in child #%s `%s{...} of node at %s",
+                          n, x.tag or '', tostring(parent.lineinfo))
+            end
+            for i, child in ipairs(x) do
+                if type(child)=='table' then rec(child, i, x) end
+            end
+        end
+        rec(ast, -1, { })
+    end
+end
+
+
+M.order= { }; for a,b in pairs(M.sequence) do M.order[b]=a end
 
 local CONV = { } -- conversion metatable __index
 
@@ -86,19 +103,30 @@ function CONV :lexstream_to_ast(lx, name)
 	checks('metalua.compiler', 'lexer.stream', '?string')
 	local r = self.parser.chunk(lx)
 	r.source = name
+    if M.check_ast then M.check_ast (r) end
 	return r, name
+end
+
+local bytecode_compiler = nil -- cache to avoid repeated `pcall(require(...))`
+local function get_bytecode_compiler()
+    if bytecode_compiler then return bytecode_compiler else
+        local status, result = pcall(require, 'metalua.compiler.bytecode')
+        if status then
+            bytecode_compiler = result
+            return result
+        elseif string.match(result, "not found") then
+            error "Compilation only available with full Metalua"
+        else error (result) end
+    end
 end
 
 function CONV :ast_to_proto(ast, name)
 	checks('metalua.compiler', 'table', '?string')
-	--table.print(ast, 'nohash', 1) io.flush()
-	local f = require 'metalua.compiler.bytecode.compile'.ast_to_proto
-	return f(ast, name), name
+    return get_bytecode_compiler().ast_to_proto(ast, name), name
 end
 
 function CONV :proto_to_bytecode(proto, name)
-	local bc = require 'metalua.compiler.bytecode'
-	return bc.proto_to_bytecode(proto), name
+    return get_bytecode_compiler().proto_to_bytecode(proto), name
 end
 
 function CONV :bytecode_to_function(bc, name)
@@ -137,13 +165,13 @@ end
 function CONV :function_to_bytecode(...) return string.dump(...) end
 
 function CONV :ast_to_src(...)
-	require 'metalua.package' -- ast_to_string isn't written in plain lua
+	require 'metalua.loader' -- ast_to_string isn't written in plain lua
 	return require 'metalua.compiler.ast_to_src' (...)
 end
 
 local MT = { __index=CONV, __type='metalua.compiler' }
 
-function M.new() 
+function M.new()
 	local parser = require 'metalua.compiler.parser' .new()
 	local self = { parser = parser }
 	setmetatable(self, MT)

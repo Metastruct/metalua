@@ -37,7 +37,7 @@
 -- * [gg.onkeyword()]
 -- * [gg.optkeyword()]
 --
--- Other functions: 
+-- Other functions:
 -- * [gg.parse_error()]
 -- * [gg.make_parser()]
 -- * [gg.is_parser()]
@@ -150,15 +150,17 @@ end
 -------------------------------------------------------------------------------
 function M.parse_error(lx, fmt, ...)
    local li = lx:lineinfo_left()
-   local line, column, offset, positions
+   local file, line, column, offset, positions
    if li then
-      line, column, offset = li.line, li.column, li.offset
+      file, line, column, offset = li.source, li.line, li.column, li.offset
       positions = { first = li, last = li }
    else
       line, column, offset = -1, -1, -1
    end
 
    local msg  = string.format("line %i, char %i: "..fmt, line, column, ...)
+   if file and file~='?' then msg = "file "..file..", "..msg end
+
    local src = lx.src
    if offset>0 and src then
       local i, j = offset, offset
@@ -295,14 +297,12 @@ function M.multisequence (p)
             error ("In a multisequence parser, all but one sequences "..
                    "must start with a keyword")
          else self.default = s end -- first default
-      elseif self.sequences[keyword] then -- duplicate keyword
-         print (string.format(
-	    " *** Warning: keyword %q overloaded in multisequence ***",
-            keyword))
+     else
+         if self.sequences[keyword] then -- duplicate keyword
+             -- TODO: warn that initial keyword `keyword` is overloaded in multiseq
+         end
          self.sequences[keyword] = s
-      else -- newly caught keyword
-         self.sequences[keyword] = s
-      end
+     end
    end -- </multisequence.add>
 
    -------------------------------------------------------------------
@@ -315,11 +315,10 @@ function M.multisequence (p)
    -------------------------------------------------------------------
    function p :del (kw)
       if not self.sequences[kw] then
-         eprintf("*** Warning: trying to delete sequence starting "..
-                 "with %q from a multisequence having no such "..
-                 "entry ***", kw) end
+          -- TODO: warn that we try to delete a non-existent entry
+      end
       local removed = self.sequences[kw]
-      self.sequences[kw] = nil 
+      self.sequences[kw] = nil
       return removed
    end
 
@@ -365,9 +364,9 @@ end --</multisequence>
 -- * the builder takes specific parameters:
 --   - for [prefix], it takes the result of the prefix sequence parser,
 --     and the prefixed expression
---   - for [infix], it takes the left-hand-side expression, the results 
+--   - for [infix], it takes the left-hand-side expression, the results
 --     of the infix sequence parser, and the right-hand-side expression.
---   - for [suffix], it takes the suffixed expression, and the result 
+--   - for [suffix], it takes the suffixed expression, and the result
 --     of the suffix sequence parser.
 --
 -- * the default field is a list, with parameters:
@@ -380,7 +379,7 @@ end --</multisequence>
 -- In [p], useful fields are:
 -- * [transformers]: as usual
 -- * [name]: as usual
--- * [primary]: the atomic expression parser, or a multisequence config 
+-- * [primary]: the atomic expression parser, or a multisequence config
 --   table (mandatory)
 -- * [prefix]:  prefix  operators config table, see above.
 -- * [infix]:   infix   operators config table, see above.
@@ -389,7 +388,7 @@ end --</multisequence>
 -- After creation, these fields are added:
 -- * [kind] == "expr"
 -- * [parse] as usual
--- * each table is turned into a multisequence, and therefore has an 
+-- * each table is turned into a multisequence, and therefore has an
 --   [add] method
 --
 -------------------------------------------------------------------------------
@@ -437,7 +436,7 @@ function M.expr (p)
             local e = p2.builder (op, self :parse (lx, p2.prec))
             local lli = lx :lineinfo_left()
             return transform (transform (e, p2, ili, lli), self, fli, lli)
-         else -- No prefix found, get a primary expression         
+         else -- No prefix found, get a primary expression
             local e = self.primary(lx)
             local lli = lx :lineinfo_left()
             return transform (e, self, fli, lli)
@@ -455,7 +454,7 @@ function M.expr (p)
 
          -----------------------------------------
          -- Handle flattening operators: gather all operands
-         -- of the series in [list]; when a different operator 
+         -- of the series in [list]; when a different operator
          -- is found, stop, build from [list], [transform] and
          -- return.
          -----------------------------------------
@@ -472,13 +471,13 @@ function M.expr (p)
             local e2 = pflat.builder (list)
             local lli = lx:lineinfo_left()
             return transform (transform (e2, pflat, fli, lli), self, fli, lli)
- 
+
          -----------------------------------------
          -- Handle regular infix operators: [e] the LHS is known,
          -- just gather the operator and [e2] the RHS.
          -- Result goes in [e3].
          -----------------------------------------
-         elseif p2.prec and p2.prec>prec or 
+         elseif p2.prec and p2.prec>prec or
                 p2.prec==prec and p2.assoc=="right" then
             local fli = e.lineinfo.first -- lx:lineinfo_right()
             local op = p2_func(lx)
@@ -489,7 +488,7 @@ function M.expr (p)
             return transform (transform (e3, p2, fli, lli), self, fli, lli)
 
          -----------------------------------------
-         -- Check for non-associative operators, and complain if applicable. 
+         -- Check for non-associative operators, and complain if applicable.
          -----------------------------------------
          elseif p2.assoc=="none" and p2.prec==prec then
             M.parse_error (lx, "non-associative operator!")
@@ -524,7 +523,7 @@ function M.expr (p)
       end --</expr.parse.handle_suffix>
 
       ------------------------------------------------------
-      -- Parser body: read suffix and (infix+operand) 
+      -- Parser body: read suffix and (infix+operand)
       -- extensions as long as we're able to fetch more at
       -- this precedence level.
       ------------------------------------------------------
@@ -649,7 +648,7 @@ end --</list>
 -- Keyword-conditioned parser generator
 --
 -------------------------------------------------------------------------------
--- 
+--
 -- Only apply a parser if a given keyword is found. The result of
 -- [gg.onkeyword] parser is the result of the subparser (modulo
 -- [transformers] applications).
@@ -668,7 +667,7 @@ end --</list>
 -- * [peek]: if non-nil, the conditioning keyword is left in the lexeme
 --   stream instead of being consumed.
 --
--- * [primary]: the subparser. 
+-- * [primary]: the subparser.
 --
 -- * [keywords]: list of strings representing triggering keywords.
 --
@@ -676,7 +675,7 @@ end --</list>
 --   Strings are put in [keywords], and the parser is put in [primary].
 --
 -- After the call, the following fields will be set:
---   
+--
 -- * [parse] the parsing method
 -- * [kind] == "onkeyword"
 -- * [primary]
@@ -709,8 +708,7 @@ function M.onkeyword (p)
       if type(x)=="string" then table.insert (p.keywords, x)
       else assert (not p.primary and M.is_parser (x)); p.primary = x end
    end
-   if not next (p.keywords) then
-      eprintf("Warning, no keyword to trigger gg.onkeyword") end
+   assert (next (p.keywords), "Missing trigger keyword in gg.onkeyword")
    assert (p.primary, 'no primary parser in gg.onkeyword')
    return p
 end --</onkeyword>
@@ -723,7 +721,7 @@ end --</onkeyword>
 -------------------------------------------------------------------------------
 --
 -- This doesn't return a real parser, just a function. That function parses
--- one of the keywords passed as parameters, and returns it. It returns 
+-- one of the keywords passed as parameters, and returns it. It returns
 -- [false] if no matching keyword is found.
 --
 -- Notice that tokens returned by lexer already carry lineinfo, therefore
@@ -731,7 +729,7 @@ end --</onkeyword>
 -------------------------------------------------------------------------------
 function M.optkeyword (...)
    local args = {...}
-   if type (args[1]) == "table" then 
+   if type (args[1]) == "table" then
       assert (#args == 1)
       args = args[1]
    end
@@ -759,7 +757,7 @@ end
 function M.with_lexer(new_lexer, parser)
 
    -------------------------------------------------------------------
-   -- Most gg functions take their parameters in a table, so it's 
+   -- Most gg functions take their parameters in a table, so it's
    -- better to silently accept when with_lexer{ } is called with
    -- its arguments in a list:
    -------------------------------------------------------------------
@@ -802,6 +800,33 @@ function M.nonempty(primary)
        end
     end
     return p
+end
+
+local FUTURE_MT = { }
+function FUTURE_MT:__tostring() return "<Proxy parser module>" end
+function FUTURE_MT:__newindex(key, value) error "don't write in futures" end
+function FUTURE_MT :__index (parser_name)
+    return function(...)
+        local p, m = rawget(self, '__path'), self.__module
+        if p then for _, name in ipairs(p) do
+            m=rawget(m, name)
+            if not m then error ("Submodule '"..name.."' undefined") end
+        end end
+        local f = rawget(m, parser_name)
+        if not f then error ("Parser '"..parser_name.."' undefined") end
+        return f(...)
+    end
+end
+
+function M.future(module, ...)
+    checks('table')
+    local path = ... and {...}
+    if path then for _, x in ipairs(path) do 
+        assert(type(x)=='string', "Bad future arg")
+    end end
+    local self = { __module = module,
+                   __path   = path }
+    return setmetatable(self, FUTURE_MT)
 end
 
 return M

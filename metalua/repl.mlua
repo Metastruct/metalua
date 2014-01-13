@@ -23,6 +23,7 @@ LINE_WIDTH = 60
 PROMPT     = "M> "
 PROMPT2    = ">> "
 
+local pp=require 'metalua.pprint'
 local M = { }
 
 mlc = require 'metalua.compiler'.new()
@@ -35,10 +36,16 @@ do -- set readline() to a line reader, either editline otr a default
       local rl_handle = editline.init 'metalua'
       readline = |p| rl_handle:read(p)
    else
-      function readline (p)
-         io.write (p)
-         io.flush ()
-         return io.read '*l'
+      local status, rl = pcall(require, 'readline')
+      if status then
+         rl.set_options{histfile='~/.metalua_history', keeplines=100, completion=false }
+         readline = rl.readline
+      else -- neither editline nor readline available
+         function readline (p)
+            io.write (p)
+            io.flush ()
+            return io.read '*l'
+         end
       end
    end
 end
@@ -49,7 +56,7 @@ end
 
 
 function M.run()
-    printf ("Metalua, interactive REPLoop.\n"..
+    pp.printf ("Metalua, interactive REPLoop.\n"..
             "(c) 2006-2013 <metalua@gmail.com>")
    local lines = { }
    while true do
@@ -72,7 +79,9 @@ function M.run()
               success = table.remove (results, 1)
               if success then
                   -- Success!
-                  table.iforeach(|x| table.print(x, LINE_WIDTH), results)
+                  for _, x in ipairs(results) do
+                      pp.print(x, {line_max=LINE_WIDTH, metalua_tag=true})
+                  end
                   lines = { }
               else
                   print "Evaluation error:"
