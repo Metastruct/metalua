@@ -17,7 +17,7 @@
 --
 --------------------------------------------------------------------------------
 
-require 'checks'
+local checks = require 'checks'
 local gg = require 'metalua.grammar.generator'
 local M  = { }
 

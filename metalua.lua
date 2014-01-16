@@ -17,6 +17,13 @@
 --
 -------------------------------------------------------------------------------
 
+---
+-- Main executable script.
+-- Compiles, interprets, prints source files, runs an interactive shell,
+-- depending on command-line options.
+--
+-- @module metalua
+
 -- Survive lack of checks
 if not pcall(require, 'checks') then function package.preload.checks() function checks() end end end
 

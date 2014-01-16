@@ -392,7 +392,7 @@ function M:Local (node, lhs, rhs, annots)
             self:list (rhs, ", ")
         end
     else -- Can't create a local statement with 0 variables in plain Lua
-        self:acc (table.tostring (node, 'nohash', 80))
+        self:acc (pp.tostring (node, {metalua_tag=1, hide_hash=1, fix_indent=2}))
     end
 end
 
@@ -415,7 +415,7 @@ function M:Localrec (node, lhs, rhs)
       -- Other localrec are unprintable ==> splice them --
           -- This cannot happen in a plain Lua AST. --
       self:acc "-{ "
-      self:acc (table.tostring (node, 'nohash', 80))
+      self:acc (pp.tostring (node, {metalua_tag=1, hide_hash=1, fix_indent=2}))
       self:acc " }"
    end
 end

@@ -36,7 +36,8 @@
 --
 --------------------------------------------------------------------------------
 
-local gg       = require 'metalua.grammar.generator'
+local pp = require 'metalua.pprint'
+local gg = require 'metalua.grammar.generator'
 
 -- TODO: replace splice-aware versions with naive ones, move etensions in ./meta
 
@@ -115,7 +116,7 @@ return function(M)
             -- +{ `String{ `Index{ `Splice{ -{id[1]} }, `Number 1 } } }
             return { tag="String",  { tag="Index", { tag="Splice", id[1] },
                                       { tag="Number", 1 } } }
-        else error ("Identifier expected: "..table.tostring(id, 'nohash')) end
+        else error ("Identifier expected: "..pp.tostring (id, {metalua_tag=1, hide_hash=1})) end
     end
 
     --------------------------------------------------------------------------------

@@ -31,7 +31,7 @@ mlc = require 'metalua.compiler'.new()
 local readline
 
 do -- set readline() to a line reader, either editline otr a default
-   local status, _ = pcall(require, 'editline')
+   local status, editline = pcall(require, 'editline')
    if status then
       local rl_handle = editline.init 'metalua'
       readline = |p| rl_handle:read(p)
