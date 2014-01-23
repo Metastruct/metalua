@@ -64,6 +64,10 @@ end
 -- a more recent bytecode dump. Requires lfs
 ----------------------------------------------------------------------
 local function metalua_cache_loader(name, src_filename, src)
+    if not M.mcache:find('%?') then
+        -- This is highly suspicious...
+        print("WARNING: no '?' character in $LUA_MCACHE/package.mcache")
+    end
     local mlc          = require 'metalua.compiler'.new()
     local lfs          = require 'lfs'
     local dir_sep      = M.config:sub(1,1)
@@ -75,7 +79,7 @@ local function metalua_cache_loader(name, src_filename, src)
     local delta        = dst_date - src_date
     local bytecode, file, msg
     if delta <= 0 then
-       print "NEED TO RECOMPILE"
+       --print ("(need to recompile "..src_filename.." into "..dst_filename..")")
        bytecode = mlc :src_to_bytecode (src, name)
        for x in dst_filename :gmatch('()'..dir_sep) do
           lfs.mkdir(dst_filename:sub(1,x))
