@@ -85,7 +85,7 @@ the left-hand-side of an assignment statement `lhs`.
       `Nil  |  `Dots  |  `True  |  `False
     | `Number{ <number> }
     | `String{ <string> }
-    | `Function{ { `Id{ <string> }* `Dots? } block }
+    | `Function{ { ident* `Dots? } block }
     | `Table{ ( `Pair{ expr expr } | expr )* }
     | `Op{ opid expr expr? }
     | `Paren{ expr }       -- significant to cut multiple values returns
@@ -96,7 +96,9 @@ the left-hand-side of an assignment statement `lhs`.
       `Call{ expr expr* }
     | `Invoke{ expr `String{ <string> } expr* }
 
-    lhs: `Id{ <string> } | `Index{ expr expr }
+    ident: `Id{ <string> }
+
+    lhs: ident | `Index{ expr expr }
 
     opid: 'add'   | 'sub'   | 'mul'   | 'div'
         | 'mod'   | 'pow'   | 'concat'| 'eq'
