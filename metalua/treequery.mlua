@@ -454,12 +454,6 @@ function M.children(ast)
         if x~=ast then table.insert(acc, x); return 'break' end
     end
     walk.guess(cfg, ast)
-    local x = ast.tag
-    if x then x=reorder[x]; if x then x=x[#ast]; if x then
-        local reordered = { }
-        for i, j in pairs(x) do reordered[i]=acc[j] end
-        return reordered
-    end end end
     return acc
 end
 
