@@ -299,7 +299,7 @@ function M.is_stat(node, parent)
     local tag = node.tag
     if not tag then return false
     elseif STAT_TAGS[tag] then return true
-    elseif tag=='Call' or tag=='Invoke' then return parent.tag==nil
+    elseif tag=='Call' or tag=='Invoke' then return parent and parent.tag==nil
     else return false end
 end
 
@@ -435,6 +435,33 @@ function M.is_nth(a, b)
     end
 end
 
+--- Returns a list of the direct children of AST node `ast`.
+--  Children are only expressions, statements and blocks,
+--  not intermediates such as `Pair` nodes or internal lists
+--  in `Local` or `Set` nodes.
+--  Children are returned in parsing order, which isn't necessarily
+--  the same as source code order. For instance, the right-hand-side
+--  of a `Local` node is listed before the left-hand-side, because
+--  semantically the right is evaluated before the variables on the
+--  left enter scope.
+--
+--  @param ast the node whose children are needed
+--  @return a list of the direct children of `ast`
+function M.children(ast)
+    local acc = { }
+    local cfg = { }
+    function cfg.down(x)
+        if x~=ast then table.insert(acc, x); return 'break' end
+    end
+    walk.guess(cfg, ast)
+    local x = ast.tag
+    if x then x=reorder[x]; if x then x=x[#ast]; if x then
+        local reordered = { }
+        for i, j in pairs(x) do reordered[i]=acc[j] end
+        return reordered
+    end end end
+    return acc
+end
 
 -- -----------------------------------------------------------------------------
 -- -----------------------------------------------------------------------------

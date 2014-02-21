@@ -18,35 +18,35 @@
 -------------------------------------------------------------------------------
 
 -- Low level AST traversal library.
--- This library is a helper for the higher-level treequery library.
+--
+-- This library is a helper for the higher-level `treequery` library.
 -- It walks through every node of an AST, depth-first, and executes
--- some callbacks contained in its cfg config table:
+-- some callbacks contained in its `cfg` config table:
 --
--- * cfg.down(...) is called when it walks down a node, and receive as
+-- * `cfg.down(...)` is called when it walks down a node, and receive as
 --   parameters the node just entered, followed by its parent, grand-parent
 --   etc. until the root node.
 --
--- * cfg.up(...) is called when it walks back up a node, and receive as
+-- * `cfg.up(...)` is called when it walks back up a node, and receive as
 --   parameters the node just entered, followed by its parent, grand-parent
 --   etc. until the root node.
 --
--- * cfg.occurrence(binder, id_node, ...) is called when it visits an `Id{ }
---   node which isn't a local variable creator. binder is a reference to its
---   binder with its context. The binder is the `Id{ } node which created 
---   this local variable. By "binder and its context", we mean a list starting
---   with the `Id{ }, and followed by every ancestor of the binder node, up until
---   the common root node.
---   binder is nil if the variable is global.
---   id_node is followed by its ancestor, up until the root node.
+-- * `cfg.occurrence(binder, id_node, ...)` is called when it visits
+--   an `` `Id{ }`` node which isn't a local variable creator. binder
+--   is a reference to its binder with its context. The binder is the
+--   `` `Id{ }`` node which created this local variable. By "binder
+--   and its context", we mean a list starting with the `` `Id{ }``,
+--   and followed by every ancestor of the binder node, up until the
+--   common root node.  `binder` is nil if the variable is global.
+--   `id_node` is followed by its ancestor, up until the root node.
 --
--- cfg.scope is maintained during the traversal, associating a
+-- `cfg.scope` is maintained during the traversal, associating a
 -- variable name to the binder which creates it in the context of the
 -- node currently visited.
 --
--- walk.traverse.xxx functions are in charge of the recursive descent into
--- children nodes. They're private helpers.
---
--- corresponding walk.xxx functions also take care of calling cfg callbacks.
+-- `walk.traverse.xxx` functions are in charge of the recursive
+-- descent into children nodes. They're private helpers. They are also
+-- in charge of calling appropriate `cfg.xxx` callbacks.
 
 -{ extension ("match", ...) }
 
@@ -74,6 +74,7 @@ M.tags.expr = table_transpose{
 -- These [M.traverse.xxx()] functions are in charge of actually going through
 -- ASTs. At each node, they make sure to call the appropriate walker.
 --------------------------------------------------------------------------------
+
 function M.traverse.stat (cfg, x, ...)
    if M.debug then pp.printf("traverse stat %s", x) end
    local ancestors = {...}
@@ -180,10 +181,15 @@ function M.binder_list (cfg, id_list, ...)
     local f = cfg.binder
     local ferror = cfg.error or cfg.malformed or cfg.unknown
     for i, id_node in ipairs(id_list) do
+      local down, up = cfg.down, cfg.up
       if id_node.tag == 'Id' then
          cfg.scope :set (id_node[1], { id_node, ... })
+         if down then down(id_node, ...) end
          if f then f(id_node, ...) end
+         if up then up(id_node, ...) end
       elseif i==#id_list and id_node.tag=='Dots' then
+         if down then down(id_node, ...) end
+         if up then up(id_node, ...) end
          -- Do nothing, those are valid `Dots
       elseif ferror then
          -- Traverse error handling function
@@ -213,7 +219,10 @@ local walker_builder = function(traverse)
 end
 
 ----------------------------------------------------------------------
--- Declare [M.stat], [M.expr], [M.block] and [M.expr_list]
+-- Declare [M.stat], [M.expr], [M.block].
+-- `M.binder_list` is not here, because `cfg.up` and `cfg.down` must
+-- be called on individual binders, not on the list itself.
+-- It's therefore handled in `traverse.binder_list()`
 ----------------------------------------------------------------------
 for _, w in ipairs{ "stat", "expr", "block" } do --, "malformed", "unknown" } do
    M[w] = walker_builder (w, M.traverse[w])
