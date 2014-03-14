@@ -2,8 +2,7 @@
 package = "metalua-compiler"
 version = "0.7.2-2"
 source = {
-   url = "git://git.eclipse.org/gitroot/koneki/org.eclipse.koneki.metalua.git",
-   tag = "v0.7.2",
+   url = "http://git.eclipse.org/c/koneki/org.eclipse.koneki.metalua.git/snapshot/v0.7.2.tar.gz"
 }
 
 description = {
@@ -23,10 +22,7 @@ dependencies = {
     "luafilesystem >= 1.6.2",  -- Cached compilation based on file timestamps
     "metalua-parser == 0.7.2", -- AST production
     platforms = {
-        freebsd = {
-            "readline >= 1.3", -- Better REPL experience
-        },
-        linux = {
+        unix = {
             "readline >= 1.3", -- Better REPL experience
         }
     }

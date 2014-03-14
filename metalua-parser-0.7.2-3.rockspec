@@ -2,8 +2,7 @@
 package = "metalua-parser"
 version = "0.7.2-3"
 source = {
-   url = "git://git.eclipse.org/gitroot/koneki/org.eclipse.koneki.metalua.git",
-   tag = "v0.7.2",
+   url = "http://git.eclipse.org/c/koneki/org.eclipse.koneki.metalua.git/snapshot/v0.7.2.tar.gz"
 }
 description = {
    summary = "Metalua's parser: converting Lua source strings and files into AST",
@@ -18,8 +17,7 @@ description = {
 dependencies = {
     "lua ~> 5.1",
     platforms = {
-        freebsd = { "checks >= 1.0" },
-        linux   = { "checks >= 1.0" }
+        unix = { "checks >= 1.0" }
     }
 }
 build = {
