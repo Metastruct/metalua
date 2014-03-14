@@ -31,7 +31,6 @@ dependencies = {
 build = {
     type="builtin",
     modules={
-        ["metalua"] = "metalua.lua",
         ["metalua.compiler.bytecode"] = "metalua/compiler/bytecode.lua",
         ["metalua.compiler.globals"] = "metalua/compiler/globals.lua",
         ["metalua.compiler.bytecode.compile"] = "metalua/compiler/bytecode/compile.lua",
@@ -40,14 +39,19 @@ build = {
         ["metalua.compiler.bytecode.ldump"] = "metalua/compiler/bytecode/ldump.lua",
         ["metalua.loader"] = "metalua/loader.lua",
     },
-    install={lua={
-        ["metalua.treequery"] = "metalua/treequery.mlua",
-        ["metalua.compiler.ast_to_src"] = "metalua/compiler/ast_to_src.mlua",
-        ["metalua.treequery.walk"] = "metalua/treequery/walk.mlua",
-        ["metalua.extension.match"] = "metalua/extension/match.mlua",
-        ["metalua.extension.comprehension"] = "metalua/extension/comprehension.mlua",
-        ["metalua.repl"] = "metalua/repl.mlua",
-    }}
+    install={
+        lua={
+            ["metalua.treequery"] = "metalua/treequery.mlua",
+            ["metalua.compiler.ast_to_src"] = "metalua/compiler/ast_to_src.mlua",
+            ["metalua.treequery.walk"] = "metalua/treequery/walk.mlua",
+            ["metalua.extension.match"] = "metalua/extension/match.mlua",
+            ["metalua.extension.comprehension"] = "metalua/extension/comprehension.mlua",
+            ["metalua.repl"] = "metalua/repl.mlua",
+        },
+        bin = {
+            metalua = 'bin/metalua'
+        }
+    }
 }
 
 --[==[-- Generate file lists
