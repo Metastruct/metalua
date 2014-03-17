@@ -22,7 +22,9 @@ dependencies = {
 }
 build = {
   type="builtin",
-  bin = {
-    metalua = 'bin/metalua'
+  install = {
+    bin = {
+      metalua = 'bin/metalua'
+    }
   }
 }
