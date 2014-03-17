@@ -1,5 +1,5 @@
 --*-lua-*--
-package = "metalua-parser"
+package = "metalua"
 version = "0.7.3-1"
 source = {
   url = "http://git.eclipse.org/c/koneki/org.eclipse.koneki.metalua.git/snapshot/org.eclipse.koneki.metalua-v0.7.3.tar.gz"
