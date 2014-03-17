@@ -2,7 +2,7 @@
 package = "metalua-parser"
 version = "0.7.3-1"
 source = {
-  url = "http://git.eclipse.org/c/koneki/org.eclipse.koneki.metalua.git/snapshot/v0.7.3.tar.gz"
+  url = "http://git.eclipse.org/c/koneki/org.eclipse.koneki.metalua.git/snapshot/org.eclipse.koneki.metalua-v0.7.3.tar.gz"
 }
 description = {
   summary = "Metalua: parser, compiler and command line interface.",
