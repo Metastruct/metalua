@@ -22,6 +22,7 @@ dependencies = {
 }
 build = {
   type="builtin",
+  modules = {},
   install = {
     bin = {
       metalua = 'bin/metalua'
