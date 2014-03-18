@@ -20,7 +20,7 @@ description = {
 dependencies = {
   "lua ~> 5.1",              -- Lua 5.2 bytecode not supported
   "luafilesystem >= 1.6.2",  -- Cached compilation based on file timestamps
-  "metalua-parser == 0.7.2", -- AST production
+  "metalua-parser == 0.7.3", -- AST production
 }
 
 build = {
