@@ -11,9 +11,9 @@ description = {
   license = "EPL + MIT"
 }
 dependencies = {
+  "lua ~> 5.1",
   "alt-getopt ~> 0.7",
   "checks ~> 1.0",
-  "lua ~> 5.1",
   "metalua-compiler == 0.7.3",
   platforms = {
     unix = {
