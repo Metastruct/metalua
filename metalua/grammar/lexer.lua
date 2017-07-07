@@ -17,7 +17,6 @@
 --
 -------------------------------------------------------------------------------
 
-local checks = require 'checks'
 
 local M = { }
 
@@ -61,7 +60,6 @@ new_metatable 'position'
 local position_idx=1
 
 function M.new_position(line, column, offset, source)
-    checks('number', 'number', 'number', 'string')
     local id = position_idx; position_idx = position_idx+1
     return setmetatable({line=line, column=column, offset=offset,
                          source=source, id=id}, MT.position)
@@ -128,7 +126,6 @@ end
 new_metatable 'lineinfo'
 
 function M.new_lineinfo(first, last)
-    checks('lexer.position', 'lexer.position')
     return setmetatable({first=first, last=last}, MT.lineinfo)
 end
 
@@ -186,7 +183,6 @@ function MT.comment :text()
 end
 
 function M.new_comment_line(text, lineinfo, nequals)
-    checks('string', 'lexer.lineinfo', '?number')
     return { lineinfo = lineinfo, text, nequals }
 end
 

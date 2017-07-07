@@ -18,7 +18,6 @@
 --------------------------------------------------------------------------------
 
 local M = require "package" -- extend Lua's basic "package" module
-local checks = require 'checks'
 
 M.metalua_extension_prefix = 'metalua.extension.'
 

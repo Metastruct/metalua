@@ -78,7 +78,6 @@
 -- TODO: cfg.ntmp isn't reset as often as it could. I'm not even sure
 --       the corresponding locals are declared.
 
-local checks = require 'checks'
 local gg     = require 'metalua.grammar.generator'
 local pp     = require 'metalua.pprint'
 
@@ -372,7 +371,6 @@ local function extend(M)
 
     local _M = gg.future(M)
 
-    checks('metalua.compiler.parser')
     M.lexer:add{ "match", "with", "->" }
     M.block.terminators:add "|"
 

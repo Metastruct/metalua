@@ -38,7 +38,6 @@
 --
 --------------------------------------------------------------------------------
 
-local checks = require 'checks'
 
 local M  = { }
 
@@ -83,7 +82,6 @@ M.order= { }; for a,b in pairs(M.sequence) do M.order[b]=a end
 local CONV = { } -- conversion metatable __index
 
 function CONV :srcfile_to_src(x, name)
-	checks('metalua.compiler', 'string', '?string')
 	name = name or '@'..x
 	local f, msg = io.open (x, 'rb')
 	if not f then error(msg) end
@@ -94,13 +92,11 @@ function CONV :srcfile_to_src(x, name)
 end
 
 function CONV :src_to_lexstream(src, name)
-	checks('metalua.compiler', 'string', '?string')
 	local r = self.parser.lexer :newstream (src, name)
 	return r, name
 end
 
 function CONV :lexstream_to_ast(lx, name)
-	checks('metalua.compiler', 'lexer.stream', '?string')
 	local r = self.parser.chunk(lx)
 	r.source = name
     if M.check_ast then M.check_ast (r) end
@@ -121,7 +117,6 @@ local function get_bytecode_compiler()
 end
 
 function CONV :ast_to_proto(ast, name)
-	checks('metalua.compiler', 'table', '?string')
     return get_bytecode_compiler().ast_to_proto(ast, name), name
 end
 
@@ -130,7 +125,6 @@ function CONV :proto_to_bytecode(proto, name)
 end
 
 function CONV :bytecode_to_function(bc, name)
-	checks('metalua.compiler', 'string', '?string')
 	return loadstring(bc, name)
 end
 
@@ -148,7 +142,6 @@ for i=1,#M.sequence do
 			table.insert (functions, f)
 		end
 		CONV[dst_name] = function(self, a, b)
-			checks('metalua.compiler', unpack(my_arg_types))
 			for _, f in ipairs(functions) do
 				a, b = f(self, a, b)
 			end

@@ -17,12 +17,10 @@
 --
 --------------------------------------------------------------------------------
 
-local checks = require 'checks'
 local gg = require 'metalua.grammar.generator'
 local M  = { }
 
 function M.opt(mlc, primary, a_type)
-    checks('table', 'table|function', 'string')
     return gg.sequence{
         primary,
         gg.onkeyword{ "#", function() return assert(mlc.annot[a_type]) end },

@@ -46,7 +46,6 @@
 
 local M = { }
 
-local checks = require 'checks'
 local lexer  = require 'metalua.grammar.lexer'
 local pp     = require 'metalua.pprint'
 
@@ -821,7 +820,6 @@ function FUTURE_MT :__index (parser_name)
 end
 
 function M.future(module, ...)
-    checks('table')
     local path = ... and {...}
     if path then for _, x in ipairs(path) do 
         assert(type(x)=='string', "Bad future arg")
