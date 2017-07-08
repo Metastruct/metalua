@@ -38,6 +38,7 @@
 --
 --------------------------------------------------------------------------------
 
+local lulu = require'metalua.lulu'
 
 local M  = { }
 
@@ -125,7 +126,9 @@ function CONV :proto_to_bytecode(proto, name)
 end
 
 function CONV :bytecode_to_function(bc, name)
-	return loadstring(bc, name)
+	return function(...)
+		return select(2, assert(lulu.newvm():run(lulu.loadproto(bc), ...)))
+	end
 end
 
 -- Create all sensible combinations

@@ -61,7 +61,7 @@ local luaP = require 'metalua.compiler.bytecode.lopcodes'
 local M = { }
 
 local format = { }
-format.header = string.dump(function()end):sub(1, 12)
+format.header = "\27LuaQ\0\1\4\4\4\b\0"
 format.little_endian, format.int_size, 
 format.size_t_size,   format.instr_size, 
 format.number_size,   format.integral = format.header:byte(7, 12)

@@ -218,7 +218,7 @@ function M.sequence (p)
       -- Builder application:
       local builder, tb = self.builder, type (self.builder)
       if tb == "string" then seq.tag = builder
-      elseif tb == "function" or builder and builder.__call then seq = builder(seq)
+      elseif tb == "function" or builder and (builder.__call or getmetatable(builder).__call) then seq = builder(seq)
       elseif builder == nil then -- nothing
       else error ("Invalid builder of type "..tb.." in sequence") end
       seq = transform (seq, self, fli, lli)
