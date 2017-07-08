@@ -20,7 +20,7 @@
 --  3. This notice may not be removed or altered from any source distribution.
 ------------------------------------------------------------------------------
 
-lulu = {}
+local lulu = {}
 
 -------------------------------------------------------------------------
 -- <<Utilities>>
@@ -335,7 +335,6 @@ function lulu.stdlib(vm)
   local lib = dup(_G) -- とりあえずホスト環境のライブラリをコピー
   lib._G       = lib
   lib._VERSION = "LuLu 0.4"
-  lib.arg      = {[-1]=arg[-1].." "..arg[0], [0]=arg[1], unpack(arg,2)}
   lib.type     = function(v)
                    local s = type(v)
                    if s == "table" then
@@ -730,14 +729,4 @@ function co_run(co)
   return co.return_values
 end
 
--------------------------------------------------------------------------
--- Main
--------------------------------------------------------------------------
-
-if arg[1] then
-   local chunk = string.dump(loadfile(arg[1]))
-   local vm = lulu.newvm()
-   vm:run( lulu.loadproto(chunk) )
-else
-   print( "Usage: lua lulu.lua [script.lua] [args]" )
-end
+return lulu
