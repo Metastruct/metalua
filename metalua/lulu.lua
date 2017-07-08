@@ -235,7 +235,7 @@ end
 
 local running_vm = nil
 local function_metatable = {__call = function(fn, ...)
-  return unpack({running_vm:co_resume(lulu.newthread(fn), ...)}, 2)
+  return unpack({(running_vm or lulu.newvm()):co_resume(lulu.newthread(fn), ...)}, 2)
 end}
 
 function lulu.newfunction(proto, env)
