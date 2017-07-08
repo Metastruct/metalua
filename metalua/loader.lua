@@ -50,8 +50,8 @@ function M.findfile(name, path_string)
       --printf('path = %s, rpath_mark=%s, name=%s', path, resc(path_mark), name)
       local filename = path:gsub (resc (path_mark), name)
       --printf('filename = %s', filename)
-      local file = io.open (filename, 'rb')
-      if file then return file, filename end
+      local f = file.Open (filename, 'rb', 'GAME')
+      if f then return f, filename end
       table.insert(errors, string.format("\tno file %q", filename))
    end
    return false, '\n'..table.concat(errors, "\n")..'\n'
@@ -75,22 +75,22 @@ local function metalua_cache_loader(name, src_filename, src)
     local dst_a        = lfs.attributes(dst_filename)
     local dst_date     = dst_a and dst_a.modification or 0
     local delta        = dst_date - src_date
-    local bytecode, file, msg
+    local bytecode, f, msg
     if delta <= 0 then
        --print ("(need to recompile "..src_filename.." into "..dst_filename..")")
        bytecode = mlc :src_to_bytecode (src, '@'..src_filename)
        for x in dst_filename :gmatch('()'..dir_sep) do
           lfs.mkdir(dst_filename:sub(1,x))
        end
-       file, msg = io.open(dst_filename, 'wb')
-       if not file then error(msg) end
-       file :write (bytecode)
-       file :close()
+       f, msg = file.Open(dst_filename, 'wb', 'GAME')
+       if not f then error(msg or "couldn't open file") end
+       f :Write (bytecode)
+       f :Close()
     else
-       file, msg = io.open(dst_filename, 'rb')
-       if not file then error(msg) end
-       bytecode = file :read '*a'
-       file :close()
+       f, msg = file.Open(dst_filename, 'rb', 'GAME')
+       if not f then error(msg or "couldn't open file") end
+       bytecode = f :Read (f:Size())
+       f :Close()
     end
     return mlc :bytecode_to_function (bytecode, '@'..src_filename)
 end
@@ -101,8 +101,8 @@ end
 function M.metalua_loader (name)
    local file, filename_or_msg = M.findfile (name, M.mpath)
    if not file then return filename_or_msg end
-   local luastring = file:read '*a'
-   file:close()
+   local luastring = file:Read (file:Size())
+   file:Close()
    if M.mcache and pcall(require, 'lfs') then
       return metalua_cache_loader(name, filename_or_msg, luastring)
    else return require 'metalua.compiler'.new() :src_to_function (luastring, '@'..filename_or_msg) end

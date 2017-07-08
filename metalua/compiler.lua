@@ -84,11 +84,11 @@ local CONV = { } -- conversion metatable __index
 
 function CONV :srcfile_to_src(x, name)
 	name = name or '@'..x
-	local f, msg = io.open (x, 'rb')
-	if not f then error(msg) end
-	local r, msg = f :read '*a'
+	local f, msg = file.Open (x, 'rb', 'GAME')
+	if not f then error(msg or "couldn't open file") end
+	local r, msg = f :Read (f:Size())
 	if not r then error("Cannot read file '"..x.."': "..msg) end
-	f :close()
+	f :Close()
 	return r, name
 end
 

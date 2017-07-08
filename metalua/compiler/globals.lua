@@ -46,10 +46,10 @@ function M.loadstring(str, name)
 end
 
 function M.loadfile(filename)
-   local f, err_msg = io.open(filename, 'rb')
-   if not f then return nil, err_msg end
-   local success, src = pcall( f.read, f, '*a')
-   pcall(f.close, f)
+   local f, err_msg = file.Open(filename, 'rb', "GAME")
+   if not f then return nil, (err_msg or "couldn't open file") end
+   local success, src = pcall( f.Read, f, f:Size() )
+   pcall(f.Close, f)
    if success then return M.loadstring (src, '@'..filename)
    else return nil, src end
 end

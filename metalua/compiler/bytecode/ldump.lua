@@ -136,13 +136,13 @@ end
 ------------------------------------------------------------------------
 function luaU:make_setF(filename)
   local buff = {}
-        buff.h = io.open(filename, "wb")
+        buff.h = file.Open(filename, "wb", "GAME")
   if not buff.h then return nil end
   local writer =
     function(s, buff)  -- chunk writer
       if not buff.h then return end
-      if not s then buff.h:close(); return end
-      buff.h:write(s)
+      if not s then buff.h:Close(); return end
+      buff.h:Write(s)
     end
   return writer, buff
 end
@@ -439,9 +439,10 @@ end
 function M.dump_file (proto, filename)
    local writer, buff = luaU:make_setS()
    luaU:dump (proto, writer, buff)
-   local file = io.open (filename, "wb")
-   file:write (buff.data)
-   io.close(file)
+   local f, msg = file.Open(filename, "wb", "GAME")
+   if not f then error(msg or "couldn't open file") end
+   f:Write(buff.data)
+   f:Close()
    --if UNIX_SHARPBANG then os.execute ("chmod a+x "..filename) end
 end
 
