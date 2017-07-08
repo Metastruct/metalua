@@ -30,13 +30,6 @@ M.lexer = lexer
 local debugf = function() end
 -- local debugf=printf
 
-----------------------------------------------------------------------
--- Some locale settings produce bad results, e.g. French locale
--- expect float numbers to use commas instead of periods.
--- TODO: change number parser into something loclae-independent,
--- locales are nasty.
-----------------------------------------------------------------------
-os.setlocale('C')
 
 local MT = { }
 

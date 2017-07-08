@@ -22,10 +22,9 @@ local M = require "package" -- extend Lua's basic "package" module
 M.metalua_extension_prefix = 'metalua.extension.'
 
 -- Initialize package.mpath from package.path
-M.mpath = M.mpath or os.getenv 'LUA_MPATH' or
+M.mpath = M.mpath or
     (M.path..";") :gsub("%.(lua[:;])", ".m%1") :sub(1, -2)
 
-M.mcache = M.mcache or os.getenv 'LUA_MCACHE'
 
 ----------------------------------------------------------------------
 -- resc(k) returns "%"..k if it's a special regular expression char,
