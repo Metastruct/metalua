@@ -1,0 +1,174 @@
+-{ extension 'match' }
+
+--------------------------------------------------------------------------------
+--
+-- TODO:
+--
+-- * Hygiene! this stuff is absolutely not hygienic, and lexically nested
+--   try...with 
+--
+-- * give a more lua-like syntax:
+--   > try ... (catch expr then block)* (finally block)? end
+--
+-- * create an RAII-like feature, possibly in a separate extension:
+--   > with v1, v2, ... = rsc1, rsc2, ... do block end ==>
+--   > try local v1 = rsc1
+--   >    try v2 = rsc2
+--   >       ...
+--   >    finally v2:close()
+--   > finally v1:close() end
+--
+-- * match.mlua refactoring: there are many other places where it
+--   should be usable (fancy assignments...), if it were cut in
+--   smaller, more usable functions. They should probably go in a
+--   separate module.
+--
+--------------------------------------------------------------------------------
+
+-{ extension 'H' }
+-{ extension 'log' }
+
+-- Get match parsers and builder, for catch cases handling:
+local match_alpha = require 'extension.match' 
+local H = H:new{side='inside', alpha = match_alpha }
+
+-- We'll need to track rogue return statements:
+require 'walk'
+
+-- Put a block AST into a pcall():
+local mkpcall = |block| +{pcall(function() -{block} end)}
+
+-- The statement builder:
+function trycatch_builder(x)
+   local try_code, catch_cases, finally_code = unpack(x)
+   local insert_return_catcher = false
+
+   -- Can't be hygienize automatically by the current version of H, as
+   -- it must bridge from inside user code (hacjed return statements)
+   -- to outside macro code.
+   local caught_return = !mlp.gensym 'caught_return'
+
+   !try_code; !(catch_code or { }); !(finally_code or { })
+
+   --$log(try_code, catch_cases, finally_code)
+
+   ----------------------------------------------------------------
+   -- Returns in the try-block must be transformed:
+   -- from the user's PoV, the code in the try-block isn't 
+   -- a function, therefore a return in it must not merely
+   -- end the execution of the try block, but:
+   --  * not cause any error to be caught;
+   --  * let the finally-block be executed;
+   --  * only then, let the enclosing function return with the
+   --    appropraite values.
+   -- The way to handle that is that any returned value is stored 
+   -- into the runtime variable caught_return, then a return with
+   -- no value is sent, to stop the execution of the try-code.
+   --
+   -- Similarly, a return in a catch case code must not prevent
+   -- the finally-code from being run.
+   --
+   -- This walker catches return statements and perform the relevant
+   -- transformation into caught_return setting + empty return.
+   --
+   -- There is an insert_return_catcher compile-time flag, which
+   -- allows to avoid inserting return-handling code in the result
+   -- when not needed.
+   ----------------------------------------------------------------
+   local replace_returns do
+      local function f(x)
+         match x with 
+         | `Return{...} -> 
+            insert_return_catcher = true
+            -- Setvar's 'caught_return' code can't be hygienize by H currently.
+            local setvar = `Set{ {caught_return}, { `Table{ unpack(x) } } }
+            x <- { setvar; `Return }; x.tag = nil;
+            $log('transformed return stat:', x, 60)
+            return 'break'
+         | `Function{...} -> return 'break' 
+            -- inside this, returns would be the nested function's, not ours.
+         | _ -> -- pass
+         end
+      end
+      local cfg = { stat = {down=f}, expr = {down=f} }
+      replace_returns = |x| walk.block(cfg, x)
+   end
+
+   -- parse returns in the try-block:
+   replace_returns (try_code)
+
+   -- code handling the error catching process:
+   local catch_result do
+      if catch_cases and #catch_cases>0 then
+         ----------------------------------------------------------
+         -- Protect catch code against failures: they run in a pcall(), and
+         -- the result is kept in catch_* vars so that it can be used to
+         -- relaunch the error after the finally code has been executed.
+         ----------------------------------------------------------
+         for x in ivalues (catch_cases) do
+            local case_code = x[3]
+            -- handle rogue returns:
+            replace_returns (case_code)
+            -- in case of error in the catch, we still need to run "finally":
+            x[3] = +{block: catch_success, catch_error = -{mkpcall(case_code)}}
+         end
+         ----------------------------------------------------------
+         -- Uncaught exceptions must not cause a mismatch,
+         -- so we introduce a catch-all do-nothing last case:
+         ----------------------------------------------------------
+         table.insert (catch_cases, { { { `Id '_' } }, false, { } }) 
+         catch_result = match_builder{ {+{user_error}}, catch_cases }
+      else
+         catch_result = { }
+      end
+   end
+
+   ----------------------------------------------------------------
+   -- Build the bits of code that will handle return statements
+   -- in the user code (try-block and catch-blocks).
+   ----------------------------------------------------------------
+   local caught_return_init, caught_return_rethrow do
+      if insert_return_catcher then
+         caught_return_init    = `Local{{caught_return}}
+         caught_return_rethrow =
+            +{stat: if -{caught_return} then return unpack(-{caught_return}) end}
+      else
+         caught_return_init, caught_return_rethrow = { }, { }
+      end
+   end
+
+   -- The finally code, to execute no matter what:
+   local finally_result = finally_code or { }
+
+   -- And the whole statement, gluing all taht together:
+   local result = +{stat: 
+      do
+         -{ caught_return_init }
+         local user_success,  user_error  = -{mkpcall(try_code)}
+         local catch_success, catch_error = false, user_error
+         if not user_success then -{catch_result} end
+         -{finally_result}
+         if not user_success and not catch_success then error(catch_error) end 
+         -{ caught_return_rethrow }
+      end }
+
+   H(result)
+
+   return result
+end
+
+mlp.lexer:add{ 'try', 'catch', 'finally', '->' }
+mlp.block.terminators:add{ 'catch', 'finally' }
+table.insert(match_cases_list_parser.terminators, 'finally')
+
+mlp.stat:add{
+   'try', 
+   mlp.block, 
+   gg.onkeyword{ 'catch', match_cases_list_parser },
+   gg.onkeyword{ 'finally', mlp.block },
+   'end',
+   builder = trycatch_builder }
+
+return H.alpha
+
+
