@@ -21,6 +21,7 @@ local M = require "package" -- extend Lua's basic "package" module
 
 M.metalua_extension_prefix = 'metalua.extension.'
 
+M.path = M.path or 'lua/libraries/?.lua'
 -- Initialize package.mpath from package.path
 M.mpath = M.mpath or
     (M.path..";") :gsub("%.(lua[:;])", ".m%1") :sub(1, -2)
