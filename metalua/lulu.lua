@@ -262,12 +262,12 @@ function lulu.newvm()
   return {
     main_thread    = nil,
     running_thread = nil,
-    run_as_main = function(vm, th)
+    run_as_main = function(vm, th, ...)
       vm.main_thread = th
-      vm:co_resume(vm.main_thread)
+      return vm:co_resume(vm.main_thread, ...)
     end,
-    run = function(vm, proto)
-      vm:run_as_main(lulu.newthread(lulu.newfunction(proto, lulu.stdlib(vm))))
+    run = function(vm, proto, ...)
+      return vm:run_as_main(lulu.newthread(lulu.newfunction(proto, lulu.stdlib(vm))), ...)
     end,
     ----------------------------------------------------------
     -- コルーチン関係
