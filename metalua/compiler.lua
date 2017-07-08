@@ -162,7 +162,7 @@ function CONV :function_to_bytecode(...) return string.dump(...) end
 
 function CONV :ast_to_src(...)
 	require 'metalua.loader' -- ast_to_string isn't written in plain lua
-	return require 'metalua.compiler.ast_to_src' .new() (...)
+	return require 'metalua.compiler.ast_to_src' .new():run(...)
 end
 
 local MT = { __index=CONV, __type='metalua.compiler' }
