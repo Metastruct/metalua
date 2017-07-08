@@ -406,7 +406,7 @@ function lulu.stdlib(vm)
   -- 非対応
   lib.debug   = nil
   lib.module  = nil
-  lib.require = nil
+  -- lib.require = nil
   lib.package = nil
   return lib
 end
