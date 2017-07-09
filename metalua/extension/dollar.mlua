@@ -1,9 +1,9 @@
 -- TODO: support modules as macros?
 --       does it make sense to store a constant AST as a macro?
 
--{ extension 'match' }
+printh(...);local dollar, mlp = ...
 
-dollar = rawget(getfenv(), 'dollar') or { }
+-{ extension ('match', ...) }
 
 local function dollar_builder(call)
    match call with

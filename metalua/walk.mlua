@@ -137,9 +137,9 @@
 --
 --------------------------------------------------------------------------------
 
--{ extension "match" }
+-{ extension ("match", ...) }
 
-walk = { traverse = { }; tags = { }; debug = false }
+local walk = { traverse = { }; tags = { }; debug = false }
 
 --------------------------------------------------------------------------------
 -- Standard tags: can be used to guess the type of an AST, or to check
@@ -249,7 +249,7 @@ end
 ----------------------------------------------------------------------
 -- Declare [walk.stat], [walk.expr], [walk.block] and [walk.expr_list]
 ----------------------------------------------------------------------
-for w in values{ "stat", "expr", "block", "expr_list" } do
+for w in ipairs{ "stat", "expr", "block", "expr_list" } do
    walk[w] = walker_builder (w, walk.traverse[w])
 end
 
@@ -271,3 +271,5 @@ function walk.guess (cfg, x, ...)
    if not x.tag             then return walk.block(cfg, x, ...) end
    error ("Can't guess the AST type from tag "..(x.tag or '<none>')) 
 end
+
+return walk

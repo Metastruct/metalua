@@ -1,5 +1,4 @@
-require 'walk.id'
--{ extension 'log' }
+local walk_id = require 'walk.id'
 
 --------------------------------------------------------------------------------
 --

@@ -43,11 +43,11 @@
 --
 --------------------------------------------------------------------------------
 
--{ extension 'match' }
--{ extension 'log' }
+-{ extension ('match', ...) }
+-{ extension ('log', ...) }
 
-require 'walk'
-require 'walk.scope'
+local walk = require 'walk'
+local scope = require 'walk.scope'
 
 -- variable lists auto-create empty list as values by default.
 local varlist_mt = { __index = function (self, key) 
@@ -182,4 +182,5 @@ local function _walk_id (kind, supercfg, ast, ...)
 end
 
 local mt = { __index = |_,k| |...| _walk_id(k, ...) }
-walk_id = setmetatable({ }, mt)
+
+return setmetatable({ }, mt)

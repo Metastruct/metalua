@@ -1,4 +1,4 @@
-require "walk"
+local walk = require "metalua.walk"
 
 ----------------------------------------------------------------------
 -- * [loop_tags] are the tags of statements which support continue.

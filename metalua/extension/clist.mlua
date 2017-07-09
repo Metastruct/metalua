@@ -17,7 +17,7 @@
 --
 --------------------------------------------------------------------------------
 
--{ extension "match" }
+-{ extension ("match", ...) }
 
 local function dots_builder (x) return `Dots{ x } end
 
